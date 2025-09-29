@@ -1,0 +1,9 @@
+[run]
+branch = True
+source = transientAnalysis/responseTool
+
+[html]
+directory = transientAnalysis/responseTool/out/htmlcov
+
+[report]
+show_missing = True
