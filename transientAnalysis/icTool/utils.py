@@ -2,12 +2,14 @@
 # File: transientAnalysis/icTool/utils.py
 # ---------------------------------
 from __future__ import annotations
+
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable, Iterable, Tuple
+from typing import Any, Callable
 import json
 import numpy as np
 import control as ct
+
 
 # ---------------- Utilities ---------------- #
 
@@ -17,9 +19,12 @@ def parse_vector(s: str) -> np.ndarray:
     """
     if s is None:
         raise ValueError("parse_vector: got None")
-    toks = [t for t in s.replace(",", " ").replace(";", " ")
+    toks = [
+        t
+        for t in s.replace(",", " ").replace(";", " ")
                  .replace("[", " ").replace("]", " ").split()
-            if t.strip()]
+        if t.strip()
+    ]
     if not toks:
         raise ValueError("parse_vector: empty input")
     return np.array([float(t) for t in toks], dtype=float)
@@ -45,6 +50,14 @@ def parse_matrix(s: str) -> np.ndarray:
     if arr.ndim != 2:
         raise ValueError("parse_matrix: not 2-D")
     return arr
+
+
+def parse_poly(s: str) -> np.ndarray:
+    """Parse TF polynomial coefficients in descending powers.
+    Accepts forms like '1 3 2', '1,3,2', or '[1, 3, 2]'.
+    Returns a 1-D float array.
+    """
+    return parse_vector(s)
 
 
 def time_grid(tfinal: float, dt: float) -> np.ndarray:
@@ -101,6 +114,7 @@ def forced_response_safe(sys: ct.StateSpace, T: np.ndarray, U: np.ndarray) -> tu
 
 
 # ------------- Result containers ------------- #
+
 @dataclass(slots=True)
 class CaseResult:
     """Container for a single IC computation (direct or step-equivalent)."""
@@ -132,6 +146,7 @@ class CompareResult:
 
 
 # ------------- Lightweight tracing decorator ------------- #
+
 try:  # pragma: no cover
     from .tools.diagram import track  # reuse track if available
 except Exception:  # pragma: no cover
