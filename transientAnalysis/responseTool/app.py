@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 
 from .core import (
     SSModel, TFModel, ResponseEngine, MIMOStepEngine,
-    SecondOrderModel, SecondOrderEngine
+    SecondOrderModel, SecondOrderEngine, SecondOrderSurfaceEngine
 )
 from .io import IOConfig, save_json, save_plot
 
@@ -119,7 +119,7 @@ class ResponseToolApp:
         save_json(self.io.out_dir / "ex5_3_step_metrics.json", metrics)
         return metrics
 
-    # ---------- Second-order (new) ----------
+    # ---------- Second-order (single & sweep) ----------
     def second_order_single(
         self,
         *,
@@ -190,3 +190,116 @@ class ResponseToolApp:
             save_plot(self.io.out_dir / f"{save_prefix}_sweep.png")
 
         return data
+
+    # ---------- Second-order (2D overlays & 3D mesh) ----------
+    def second_order_overlays(
+        self,
+        *,
+        wn: float,
+        zetas: list[float] | None = None,
+        tfinal: float = 10.0,
+        dt: float = 0.01,
+        save_prefix: str = "std2_overlays",
+        title_suffix: str = ""
+    ) -> dict:
+        """Generate 2D overlay curves for selected ζ values; save JSON and optional PNG."""
+        if not zetas:
+            zetas = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]
+        eng = SecondOrderSurfaceEngine()
+        T, curves = eng.overlays(float(wn), [float(z) for z in zetas], tfinal=tfinal, dt=dt)
+
+        # Save JSON as list for portability (zeta, y[] pairs)
+        payload = {
+            "wn": float(wn),
+            "T": T.tolist(),
+            "curves": [{"zeta": float(z), "y": curves[float(z)].tolist()} for z in zetas],
+        }
+        save_json(self.io.out_dir / f"{save_prefix}_2D.json", payload)
+
+        if self.show_plots:
+            plt.figure(figsize=(8.5, 5.0))
+            for z in sorted(zetas):
+                y = curves[float(z)]
+                plt.plot(T, y, label=f"ζ={z:g}")
+            ttl = rf"Unit-step overlay (standard 2nd-order), $\omega_n={wn:g}$"
+            if title_suffix:
+                ttl += f" — {title_suffix}"
+            plt.title(ttl)
+            plt.xlabel("Time (s)"); plt.ylabel("y(t)")
+            plt.grid(True, alpha=0.35); plt.legend(loc="best", ncol=3, fontsize=9)
+            save_plot(self.io.out_dir / f"{save_prefix}_2D.png")
+
+        return payload
+
+    def second_order_mesh(
+        self,
+        *,
+        wn: float,
+        zeta_min: float = 0.0,
+        zeta_max: float = 1.0,
+        zeta_steps: int = 41,
+        tfinal: float = 10.0,
+        dt: float = 0.01,
+        save_prefix: str = "std2_surface",
+        title_suffix: str = "",
+        plot_heatmap: bool = True,
+        plotly: bool = False
+    ) -> dict:
+        """Generate a 3D mesh Z(ζ, t) of step responses; save JSON and optional PNGs."""
+        eng = SecondOrderSurfaceEngine()
+        zeta_grid = np.linspace(float(zeta_min), float(zeta_max), int(zeta_steps))
+        T, Z = eng.mesh(float(wn), zeta_grid, tfinal=tfinal, dt=dt)
+
+        payload = {
+            "wn": float(wn),
+            "T": T.tolist(),
+            "zeta_grid": zeta_grid.tolist(),
+            "Z": Z.tolist(),  # (Nz, Nt)
+        }
+        save_json(self.io.out_dir / f"{save_prefix}_3D.json", payload)
+
+        if self.show_plots:
+            # 3D wireframe
+            from mpl_toolkits.mplot3d import Axes3D  # noqa: F401
+            Tm, Zm = np.meshgrid(T, zeta_grid)
+            fig = plt.figure(figsize=(9, 6))
+            ax = fig.add_subplot(111, projection="3d")
+            ax.plot_wireframe(Tm, Zm, Z, rstride=2, cstride=4, linewidth=0.7, color="k")
+            ax.set_xlabel("Time $t$ (s)")
+            ax.set_ylabel(r"Damping $\zeta$")
+            ax.set_zlabel("Response")
+            ttl = rf"3D mesh: standard 2nd-order, $\omega_n={wn:g}$"
+            if title_suffix:
+                ttl += f" — {title_suffix}"
+            ax.set_title(ttl)
+            ax.view_init(elev=25, azim=-60)
+            save_plot(self.io.out_dir / f"{save_prefix}_3D.png")
+
+            # Optional heatmap
+            if plot_heatmap:
+                plt.figure(figsize=(8.5, 4.7))
+                plt.imshow(Z, aspect="auto", origin="lower",
+                           extent=[T[0], T[-1], zeta_grid[0], zeta_grid[-1]])
+                plt.colorbar(label="Response")
+                plt.xlabel("Time $t$ (s)")
+                plt.ylabel(r"Damping $\zeta$")
+                plt.title(rf"Heatmap $y(t,\zeta)$, $\omega_n={wn:g}$")
+                save_plot(self.io.out_dir / f"{save_prefix}_heatmap.png")
+
+            # Optional interactive surface (best-effort / optional dep)
+            if plotly:
+                try:
+                    import plotly.graph_objects as go
+                    fig = go.Figure(data=[go.Surface(x=T, y=zeta_grid, z=Z)])
+                    fig.update_layout(
+                        title=rf"Plotly surface: $y(t,\zeta)$, $\omega_n={wn:g}$",
+                        scene=dict(xaxis_title="t (s)", yaxis_title="zeta", zaxis_title="Response"),
+                        width=900, height=600,
+                    )
+                    # Note: we do not save this to file; it opens a browser window when supported.
+                    fig.show()
+                except Exception:
+                    # Silent fallback if plotly isn't installed/available
+                    pass
+
+        return payload

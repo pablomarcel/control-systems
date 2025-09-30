@@ -1,3 +1,4 @@
+# transientAnalysis/responseTool/utils.py
 from __future__ import annotations
 from dataclasses import dataclass
 from typing import Iterable, Tuple
@@ -9,7 +10,11 @@ import control as ct
 def parse_vector(s: str | None) -> np.ndarray | None:
     if s is None:
         return None
-    toks = [t for t in s.replace(",", " ").replace(";", " ").replace("[", "").replace("]", "").split() if t.strip()]
+    toks = [
+        t
+        for t in s.replace(",", " ").replace(";", " ").replace("[", "").replace("]", "").split()
+        if t.strip()
+    ]
     return np.array([float(x) for x in toks], dtype=float)
 
 
@@ -25,10 +30,18 @@ def parse_matrix(s: str | None) -> np.ndarray | None:
     return np.array(data, dtype=float)
 
 
+def parse_zetas_list(s: str | None) -> list[float]:
+    """Parse comma/space-separated list of zeta values; provide a sensible default."""
+    if not s:
+        return [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]
+    toks = [t for t in s.replace(",", " ").split() if t.strip()]
+    return [float(t) for t in toks]
+
+
 def time_grid(tfinal: float, dt: float) -> np.ndarray:
     return np.arange(0.0, tfinal + dt, dt, dtype=float)
 
-# ---------- version‑safe wrappers ----------
+# ---------- version-safe wrappers ----------
 
 def _unpack_step_result(res) -> Tuple[np.ndarray, np.ndarray]:
     if isinstance(res, tuple):

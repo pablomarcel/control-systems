@@ -11,7 +11,7 @@ from .utils import (
     step_response,        # version-safe wrapper (SISO)
     forced_response,      # version-safe wrapper (SISO)
     time_grid,
-    _unpack_step_result,  # used when calling control.* directly
+    _unpack_step_result,  # used when calling control.* directly (MIMO)
     _unpack_forced_result
 )
 
@@ -43,7 +43,10 @@ class SecondOrderModel:
     K: float | None = None
     def system(self) -> ct.TransferFunction:
         K = self.K if self.K is not None else (self.wn ** 2)
-        return mk_tf(np.array([K], float), np.array([1.0, 2.0*self.zeta*self.wn, self.wn**2], float))
+        return mk_tf(
+            np.array([K], float),
+            np.array([1.0, 2.0 * self.zeta * self.wn, self.wn ** 2], float)
+        )
 
 
 # ---------- Signals ----------
@@ -160,6 +163,7 @@ class MIMOStepEngine:
     ) -> Tuple[np.ndarray, np.ndarray]:
         sys = model.system()
         T = time_grid(tfinal, dt)
+        # modern control API supports keywords T= and input=
         res = ct.step_response(sys, T=T, input=input_index)
         T_out, Y = _unpack_step_result(res)
         Y = MIMOStepEngine._normalize_y(T_out, Y)
@@ -261,7 +265,8 @@ class SecondOrderEngine:
     @staticmethod
     def step(model: SecondOrderModel, t: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         G = model.system()
-        T, y = ct.step_response(G, T=t)  # current keyword API is fine here
+        # keyword API is current and supported
+        T, y = ct.step_response(G, T=t)
         return np.asarray(T), np.squeeze(np.asarray(y))
 
     @staticmethod
@@ -295,3 +300,61 @@ class SecondOrderEngine:
             T, y = SecondOrderEngine.step(model, t)
             out["curves"].append({"zeta": float(z), "y": y.tolist()})
         return out
+
+
+# ---------- Engines (Second-order 2D/3D surfaces) ----------
+
+class SecondOrderSurfaceEngine:
+    """Engines for standard second-order system surfaces and overlays.
+
+    Standard form:
+        G(s) = wn^2 / (s^2 + 2*zeta*wn*s + wn^2)
+    """
+
+    @staticmethod
+    def std2_tf(wn: float, zeta: float):
+        num = [wn ** 2]
+        den = [1.0, 2.0 * zeta * wn, wn ** 2]
+        return mk_tf(np.array(num, float), np.array(den, float))
+
+    @staticmethod
+    def step_response_1d(sys, T: np.ndarray) -> np.ndarray:
+        T_out, y = step_response(sys, T)  # wrapper (version-safe), returns (T, y)
+        y = np.asarray(y)
+        if y.ndim == 2:
+            y = y[0, :]
+        return np.asarray(y).ravel()
+
+    @staticmethod
+    def metrics_from_step(y: np.ndarray, T: np.ndarray, tol: float = 0.02) -> dict:
+        i_peak = int(np.argmax(y))
+        ypk = float(y[i_peak])
+        tpk = float(T[i_peak])
+        yss = float(y[-1])
+        band = tol * abs(yss)
+        idx = np.where(np.abs(y - yss) > band)[0]
+        ts2 = float(T[idx[-1]]) if idx.size else 0.0
+        return dict(peak=ypk, t_peak=tpk, y_ss=yss, Ts_2pct=ts2)
+
+    # ---- simulations ----
+
+    def overlays(self, wn: float, zetas: list[float], *, tfinal: float, dt: float) -> tuple[np.ndarray, dict]:
+        """Return (T, curves) where curves[zeta] = y(T)."""
+        T = time_grid(tfinal, dt)
+        curves: dict[float, np.ndarray] = {}
+        for z in zetas:
+            sys = self.std2_tf(wn, z)
+            y = self.step_response_1d(sys, T)
+            curves[float(z)] = y
+        return T, curves
+
+    def mesh(self, wn: float, zeta_grid: np.ndarray, *, tfinal: float, dt: float) -> tuple[np.ndarray, np.ndarray]:
+        """Return (T, Z) where Z has shape (len(zeta_grid), len(T))."""
+        T = time_grid(tfinal, dt)
+        Z_rows = []
+        for z in zeta_grid:
+            sys = self.std2_tf(wn, float(z))
+            y = self.step_response_1d(sys, T)
+            Z_rows.append(y)
+        Z = np.vstack(Z_rows)  # (Nz, Nt)
+        return T, Z
