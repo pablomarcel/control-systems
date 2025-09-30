@@ -1,0 +1,9 @@
+[run]
+branch = True
+source = rootLocus/compensatorTool
+
+[html]
+directory = rootLocus/compensatorTool/out/htmlcov
+
+[report]
+show_missing = True
