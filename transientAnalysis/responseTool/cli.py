@@ -11,18 +11,29 @@ from .app import ResponseToolApp
 
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
-        description="ResponseTool — unit ramp (SS), arbitrary input (TF), and MIMO SS step"
+        description="ResponseTool — unit ramp (SS), arbitrary input (TF), and MIMO SS step",
+        conflict_handler="resolve",  # allow shared --root on subparsers
     )
-    # Optional root; if omitted, the app defaults to the package directory.
+
+    # Parent with shared options so --root can appear after subcommand too
+    common = argparse.ArgumentParser(add_help=False)
+    common.add_argument(
+        "--root",
+        default=None,
+        help="I/O root. Default: transientAnalysis/responseTool (the package dir).",
+    )
+
+    # Also expose --root at top-level so it can appear before subcommand
     p.add_argument(
         "--root",
         default=None,
         help="I/O root. Default: transientAnalysis/responseTool (the package dir).",
     )
+
     sub = p.add_subparsers(dest="cmd", required=True)
 
     # A) Unit-ramp via augmentation (state space)
-    pA = sub.add_parser("ramp-ss", help="Unit-ramp response via augmentation (state space)")
+    pA = sub.add_parser("ramp-ss", parents=[common], help="Unit-ramp response via augmentation (state space)")
     pA.add_argument("--A", type=str, default="0 1; -1 -1")
     pA.add_argument("--B", type=str, default="0; 1")
     pA.add_argument("--C", type=str, default="1 0")
@@ -32,7 +43,7 @@ def build_parser() -> argparse.ArgumentParser:
     pA.add_argument("--plot", action="store_true", help="show and save plot")
 
     # B) Arbitrary input for a transfer function
-    pB = sub.add_parser("lsim-tf", help="Arbitrary input for a transfer function")
+    pB = sub.add_parser("lsim-tf", parents=[common], help="Arbitrary input for a transfer function")
     pB.add_argument("--num", type=str, default="2 1", help="numerator (descending powers)")
     pB.add_argument("--den", type=str, default="1 1 1", help="denominator (descending powers)")
     pB.add_argument("--input", choices=["ramp", "sine", "square"], default="ramp")
@@ -40,8 +51,8 @@ def build_parser() -> argparse.ArgumentParser:
     pB.add_argument("--dt", type=float, default=0.01)
     pB.add_argument("--plot", action="store_true", help="show and save plot")
 
-    # C) MIMO state-space step from a selected input (Ogata Ex. 5-3)
-    pC = sub.add_parser("step-ss", help="MIMO state-space step from a selected input")
+    # C) MIMO state-space step from a selected input (general-purpose)
+    pC = sub.add_parser("step-ss", parents=[common], help="MIMO state-space step from a selected input")
     pC.add_argument("--A", type=str, default="-1 -1; 6.5 0")
     pC.add_argument("--B", type=str, default="1 1; 1 0")
     pC.add_argument("--C", type=str, default="1 0; 0 1")
@@ -52,6 +63,19 @@ def build_parser() -> argparse.ArgumentParser:
     pC.add_argument("--plot", action="store_true", help="show and save plots")
     pC.add_argument("--states", action="store_true", help="also export states via forced_response")
     pC.add_argument("--metrics", action="store_true", help="export basic step metrics (ss2tf + step_info)")
+    # Custom filenames
+    pC.add_argument(
+        "--save-prefix",
+        type=str,
+        default="ex5_3_from_u",
+        help="filename prefix for step outputs (default: ex5_3_from_u)",
+    )
+    pC.add_argument(
+        "--states-name",
+        type=str,
+        default="ex5_3_states_u",
+        help="filename prefix for states outputs (default: ex5_3_states_u)",
+    )
 
     return p
 
@@ -95,6 +119,7 @@ def main(argv: list[str] | None = None) -> int:
             tfinal=args.tfinal,
             dt=args.dt,
             title=f"Step from input u{args.input_index+1}",
+            save_prefix=args.save_prefix,
         )
         if args.states:
             app.step_ss_states(
@@ -102,6 +127,7 @@ def main(argv: list[str] | None = None) -> int:
                 input_index=args.input_index,
                 tfinal=args.tfinal,
                 dt=args.dt,
+                save_name=args.states_name,
             )
         if args.metrics:
             app.ss_step_metrics(A, B, C, D)
