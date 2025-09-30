@@ -1,0 +1,9 @@
+[run]
+branch = True
+source = rootLocus/rootLocusTool
+
+[html]
+directory = rootLocus/rootLocusTool/out/htmlcov
+
+[report]
+show_missing = True
