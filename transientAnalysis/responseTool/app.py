@@ -303,3 +303,111 @@ class ResponseToolApp:
                     pass
 
         return payload
+
+    # ---------- Second-order (Plotly interactive surface) ----------
+    def second_order_plotly_surface(
+        self,
+        *,
+        wn: float = 1.0,
+        zeta_min: float = 0.0,
+        zeta_max: float = 1.0,
+        zeta_steps: int = 51,
+        tfinal: float = 10.0,
+        dt: float = 0.01,
+        overlay: list[float] | None = None,
+        title: str = "",
+        save_prefix: str = "plotly_surface",
+        save_html: str | None = None,
+        save_png: str | None = None,
+    ) -> dict:
+        """
+        Interactive Plotly 3D surface y(t, zeta) for the standard 2nd-order system.
+
+        - Always writes JSON snapshot: <out>/<save_prefix>_plotly3D.json
+        - If save_html is given, writes interactive HTML.
+        - If save_png is given, attempts PNG (requires `kaleido`).
+        """
+        try:
+            import plotly.graph_objects as go
+        except Exception as e:
+            raise RuntimeError(
+                "Plotly is required for the interactive surface. "
+                "Install with: pip install plotly"
+            ) from e
+
+        overlay = overlay or []
+        # Build grids via the existing surface engine
+        eng = SecondOrderSurfaceEngine()
+        zeta_grid = np.linspace(zeta_min, zeta_max, int(zeta_steps))
+        T, Z = eng.mesh(wn=float(wn), zeta_grid=zeta_grid, tfinal=float(tfinal), dt=float(dt))
+
+        # Persist a portable snapshot (handy for tests / offline viewing)
+        payload = {
+            "wn": float(wn),
+            "T": T.tolist(),
+            "zeta_grid": zeta_grid.tolist(),
+            "Z": Z.tolist(),  # Z.shape = (Nz, Nt)
+            "overlay": [float(z) for z in overlay],
+            "title": title,
+        }
+        save_json(self.io.out_dir / f"{save_prefix}_plotly3D.json", payload)
+
+        # Compose the figure
+        surf = go.Surface(
+            x=T, y=zeta_grid, z=Z,
+            colorscale="Viridis",
+            showscale=True,
+            contours=dict(z=dict(show=True, usecolormap=True, project_z=True)),
+            name="surface",
+            hovertemplate="t=%{x:.3g}<br>ζ=%{y:.3g}<br>y=%{z:.4g}<extra></extra>",
+        )
+        fig = go.Figure(data=[surf])
+        base_title = (
+            r"Unit-step surface $y(t,\zeta)$ for "
+            r"$G(s)=\frac{\omega_n^2}{s^2+2\zeta\omega_n s+\omega_n^2}$"
+            f", $\\omega_n={wn:g}$"
+        )
+        if title:
+            base_title += f" — {title}"
+        fig.update_layout(
+            title=base_title,
+            width=950, height=650,
+            scene=dict(
+                xaxis_title="Time t (s)",
+                yaxis_title="Damping ζ",
+                zaxis_title="Response y(t)",
+                camera=dict(eye=dict(x=1.75, y=2.0, z=1.25)),
+            ),
+            margin=dict(l=0, r=0, t=60, b=0),
+            legend=dict(x=0.02, y=0.98, bgcolor="rgba(255,255,255,0.5)"),
+        )
+
+        # Optional overlay traces (zeta slices)
+        palette = [
+            "#E45756", "#4C78A8", "#72B7B2", "#F58518",
+            "#54A24B", "#B279A2", "#FF9DA6", "#9D755D"
+        ]
+        for k, z in enumerate(overlay):
+            sys = SecondOrderSurfaceEngine.std2_tf(float(wn), float(z))
+            y = eng.step_response_1d(sys, T)  # same T grid
+            fig.add_trace(
+                go.Scatter3d(
+                    x=T, y=np.full_like(T, float(z)), z=y,
+                    mode="lines",
+                    line=dict(width=6, color=palette[k % len(palette)]),
+                    name=f"ζ = {float(z):g}",
+                    hovertemplate="t=%{x:.3g}<br>ζ=%{y:.3g}<br>y=%{z:.4g}<extra></extra>",
+                )
+            )
+
+        # Save artifacts (HTML always interactive; PNG requires kaleido)
+        if save_html:
+            fig.write_html(str(self.io.out_dir / save_html), include_plotlyjs="cdn")
+        if save_png:
+            try:
+                fig.write_image(str(self.io.out_dir / save_png), scale=2)
+            except Exception as e:
+                # don't fail the run because kaleido is optional
+                print("[plotly] PNG export requires 'kaleido' (pip install -U kaleido). Skipping. Error:", e)
+
+        return payload
