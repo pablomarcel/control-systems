@@ -5,7 +5,7 @@ from pathlib import Path
 import numpy as np
 import matplotlib.pyplot as plt
 
-from .core import SSModel, TFModel, ResponseEngine
+from .core import SSModel, TFModel, ResponseEngine, MIMOStepEngine
 from .io import IOConfig, save_json, save_plot
 
 
@@ -33,7 +33,7 @@ class ResponseToolApp:
         self.io = IOConfig(self.root / "in", self.root / "out").ensure()
         self.engine = ResponseEngine()
 
-    # ---------- SS ramp via augmentation ----------
+    # ---------- SS ramp via augmentation (SISO) ----------
     def compute_unit_ramp_ss(
         self, A, B, C, D, *, tfinal: float = 10.0, dt: float = 0.01, title_suffix: str = ""
     ) -> ResponseResult:
@@ -61,7 +61,7 @@ class ResponseToolApp:
         )
         return ResponseResult(T=T, y=y_ramp, u=T)
 
-    # ---------- TF arbitrary input ----------
+    # ---------- TF arbitrary input (SISO) ----------
     def simulate_tf_input(
         self,
         num,
@@ -89,3 +89,112 @@ class ResponseToolApp:
             {"T": T.tolist(), "y": y.tolist(), "u": U.tolist()},
         )
         return ResponseResult(T=T, y=y, u=U)
+
+    # ---------- MIMO step on SS (for Ogata Ex. 5-3) ----------
+    def step_ss_from_input(
+        self,
+        A,
+        B,
+        C,
+        D,
+        *,
+        input_index: int,
+        tfinal: float = 10.0,
+        dt: float = 0.01,
+        title: str | None = None,
+        save_prefix: str = "ex5_3_from_u",
+    ) -> ResponseResult:
+        """
+        MIMO step response from a selected input channel.
+        Saves JSON (T, Y[nout,N]) and an optional PNG if plotting is enabled.
+        """
+        model = SSModel(
+            np.asarray(A, float),
+            np.asarray(B, float),
+            np.asarray(C, float),
+            np.asarray(D, float),
+        )
+        T, Y = MIMOStepEngine.step_from_input(
+            model, input_index=input_index, tfinal=tfinal, dt=dt
+        )
+        payload = {"T": T.tolist(), "Y": Y.tolist(), "input_index": int(input_index)}
+        save_json(self.io.out_dir / f"{save_prefix}{input_index+1}.json", payload)
+
+        if self.show_plots:
+            plt.figure(figsize=(8.0, 4.6))
+            for k in range(Y.shape[0]):
+                plt.plot(T, Y[k, :], label=f"Y{k+1}")
+            plt.title(title or f"Step: input u{input_index+1}")
+            plt.xlabel("Time (s)")
+            plt.ylabel("Amplitude")
+            plt.grid(True)
+            plt.legend()
+            save_plot(self.io.out_dir / f"{save_prefix}{input_index+1}.png")
+
+        # Return first output as y for convenience; full Y is in JSON
+        return ResponseResult(T=T, y=Y[0, :], u=None)
+
+    def step_ss_states(
+        self,
+        A,
+        B,
+        C,
+        D,
+        *,
+        input_index: int,
+        tfinal: float = 10.0,
+        dt: float = 0.01,
+        save_name: str = "ex5_3_states_u",
+    ) -> ResponseResult:
+        """
+        Forced-response with a unit step on the chosen input channel.
+        Saves JSON with T, Y, X, and (if plotting) a PNG with state trajectories.
+        """
+        model = SSModel(
+            np.asarray(A, float),
+            np.asarray(B, float),
+            np.asarray(C, float),
+            np.asarray(D, float),
+        )
+        T, Y, X = MIMOStepEngine.forced_step_states(
+            model, input_index=input_index, tfinal=tfinal, dt=dt
+        )
+        save_json(
+            self.io.out_dir / f"{save_name}{input_index+1}.json",
+            {
+                "T": T.tolist(),
+                "Y": (Y.tolist() if Y is not None else None),
+                "X": (X.tolist() if X is not None else None),
+                "input_index": int(input_index),
+            },
+        )
+
+        if self.show_plots and X is not None:
+            plt.figure(figsize=(8.0, 4.6))
+            for k in range(X.shape[0]):
+                plt.plot(T, X[k, :], label=f"x{k+1}")
+            plt.title(f"States: step on u{input_index+1}")
+            plt.xlabel("Time (s)")
+            plt.ylabel("State")
+            plt.grid(True)
+            plt.legend()
+            save_plot(self.io.out_dir / f"{save_name}{input_index+1}.png")
+
+        y0 = (Y[0, :] if Y is not None else np.zeros_like(T))
+        return ResponseResult(T=T, y=y0, u=None)
+
+    def ss_step_metrics(self, A, B, C, D) -> dict:
+        """
+        Compute basic step metrics (RiseTime, SettlingTime, Overshoot)
+        for each SISO channel of the SS model via ss2tf + step_info.
+        """
+        model = SSModel(
+            np.asarray(A, float),
+            np.asarray(B, float),
+            np.asarray(C, float),
+            np.asarray(D, float),
+        )
+        G = MIMOStepEngine.ss2tf_matrix(model)
+        metrics = MIMOStepEngine.step_metrics(G)
+        save_json(self.io.out_dir / "ex5_3_step_metrics.json", metrics)
+        return metrics
