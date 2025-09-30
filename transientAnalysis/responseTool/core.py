@@ -1,18 +1,18 @@
 # transientAnalysis/responseTool/core.py
 from __future__ import annotations
 from dataclasses import dataclass
-from typing import Literal, Optional, Tuple, Dict, Any
+from typing import Literal, Optional, Tuple, Dict, Any, List
 import numpy as np
 import control as ct
 
 from .utils import (
     mk_ss,
     mk_tf,
-    step_response,        # version-safe for SISO/augmentation paths
-    forced_response,      # version-safe for SISO/TF lsim paths
+    step_response,        # version-safe wrapper (SISO)
+    forced_response,      # version-safe wrapper (SISO)
     time_grid,
-    _unpack_step_result,  # used for MIMO step engine (after calling control.* directly)
-    _unpack_forced_result # used for MIMO step engine (after calling control.* directly)
+    _unpack_step_result,  # used when calling control.* directly
+    _unpack_forced_result
 )
 
 # ---------- Models ----------
@@ -23,7 +23,6 @@ class SSModel:
     B: np.ndarray
     C: np.ndarray
     D: np.ndarray
-
     def system(self):
         return mk_ss(self.A, self.B, self.C, self.D)
 
@@ -32,9 +31,19 @@ class SSModel:
 class TFModel:
     num: np.ndarray
     den: np.ndarray
-
     def system(self):
         return mk_tf(self.num, self.den)
+
+
+@dataclass(slots=True)
+class SecondOrderModel:
+    """Standard 2nd order: G(s) = K / (s^2 + 2*zeta*wn*s + wn^2)."""
+    wn: float
+    zeta: float
+    K: float | None = None
+    def system(self) -> ct.TransferFunction:
+        K = self.K if self.K is not None else (self.wn ** 2)
+        return mk_tf(np.array([K], float), np.array([1.0, 2.0*self.zeta*self.wn, self.wn**2], float))
 
 
 # ---------- Signals ----------
@@ -60,12 +69,11 @@ class InputSignal:
 # ---------- Engines (SISO ramp + TF lsim) ----------
 
 class AugmentationEngine:
-    """Implements the ramp-via-augmentation trick for SISO SS models.
+    """Ramp via augmentation trick for SISO SS.
 
     x_a = [x; z],  z = ∫ y dt
     A_A = [[A, 0], [C, 0]];  B_B = [[B], [D]];  C_C = [0...01];  D_D = [0]
     """
-
     @staticmethod
     def augment_for_ramp(A, B, C, D):
         A = np.asarray(A, float); B = np.asarray(B, float)
@@ -84,17 +92,16 @@ class AugmentationEngine:
         A_A, B_B, C_C, D_D = self.augment_for_ramp(model.A, model.B, model.C, model.D)
         sys_aug = mk_ss(A_A, B_B, C_C, D_D)
         T = time_grid(tfinal, dt)
-        T1, z = step_response(sys_aug, T)          # safe wrapper
+        T1, z = step_response(sys_aug, T)  # wrapper
         z = np.squeeze(z)
         U_ramp = InputSignal.ramp(T)
-        T2, y_ramp, _ = forced_response(sys_orig, U=U_ramp, T=T)  # safe wrapper
+        T2, y_ramp, _ = forced_response(sys_orig, U=U_ramp, T=T)  # wrapper
         y_ramp = np.squeeze(y_ramp)
         return T1, z, y_ramp
 
 
 class ResponseEngine:
     """High-level façade for SISO ramp and TF arbitrary input."""
-
     def ramp_ss(self, model: SSModel, *, tfinal: float = 10.0, dt: float = 0.01):
         return AugmentationEngine().unit_ramp_response(model, tfinal, dt)
 
@@ -116,7 +123,7 @@ class ResponseEngine:
             U = InputSignal.square(T)
         else:
             raise ValueError(f"Unknown input '{u}'")
-        T_out, y, _ = forced_response(G, U=U, T=T)  # safe wrapper
+        T_out, y, _ = forced_response(G, U=U, T=T)  # wrapper
         return np.asarray(T_out), np.squeeze(y), U
 
 
@@ -127,52 +134,32 @@ class MIMOStepEngine:
 
     @staticmethod
     def _normalize_y(T: np.ndarray, Y) -> np.ndarray:
-        """
-        Normalize outputs (or states) to shape (nout, N) given time T of length N.
-        Handles shapes: (N,), (nout,N), (N,nout), (nout,1,N), (nout,nin,N).
-        """
         T = np.asarray(T).ravel()
         N = T.size
         Y = np.asarray(Y)
-        Y = np.squeeze(Y)  # drop singleton dims where safe
-
+        Y = np.squeeze(Y)
         if Y.ndim == 0:
-            # scalar -> (1, N) replicated
             return np.full((1, N), float(Y))
-
         if Y.ndim == 1:
-            # (N,) -> (1, N)
             if Y.shape[0] != N:
                 raise ValueError(f"normalize_y: 1D Y length {Y.shape[0]} != |T| {N}")
             return Y.reshape(1, -1)
-
         if Y.ndim == 2:
-            # Prefer (nout, N)
             if Y.shape[1] == N:
                 return Y
             if Y.shape[0] == N:
                 return Y.T
-
-        if Y.ndim == 3:
-            # Common: (nout, 1, N) or (nout, nin, N)
-            if Y.shape[-1] == N:
-                mid = Y.shape[1]
-                if mid == 1:
-                    return Y[:, 0, :]
-                else:
-                    # pick first input slice consistently
-                    return Y[:, 0, :]
-
+        if Y.ndim == 3 and Y.shape[-1] == N:
+            mid = Y.shape[1]
+            return Y[:, 0, :] if mid >= 1 else Y[:, 0, :]
         raise ValueError(f"normalize_y: cannot align shapes. |T|={N}, Y.shape={Y.shape}")
 
     @staticmethod
     def step_from_input(
         model: SSModel, *, input_index: int, tfinal: float, dt: float
     ) -> Tuple[np.ndarray, np.ndarray]:
-        """Return (T, Y[nout, N]) for a unit step on the selected input channel."""
         sys = model.system()
         T = time_grid(tfinal, dt)
-        # Non-deprecated current API: use keyword args
         res = ct.step_response(sys, T=T, input=input_index)
         T_out, Y = _unpack_step_result(res)
         Y = MIMOStepEngine._normalize_y(T_out, Y)
@@ -182,13 +169,11 @@ class MIMOStepEngine:
     def forced_step_states(
         model: SSModel, *, input_index: int, tfinal: float, dt: float
     ) -> Tuple[np.ndarray, Optional[np.ndarray], Optional[np.ndarray]]:
-        """Return (T, Y[nout,N] or None, X[nx,N] or None) for a unit step on input_index."""
         sys = model.system()
         T = time_grid(tfinal, dt)
         nin = int(np.asarray(model.B).shape[1])
         U = np.zeros((nin, T.size), dtype=float)
         U[input_index, :] = 1.0
-        # Non-deprecated current API
         res = ct.forced_response(sys, T=T, U=U)
         T_out, Y, X = _unpack_forced_result(res)
         if Y is not None:
@@ -199,7 +184,6 @@ class MIMOStepEngine:
 
     @staticmethod
     def ss2tf_matrix(model: SSModel):
-        """Matrix of transfer functions (nout x nin) or None if unavailable."""
         try:
             return ct.ss2tf(model.system())
         except Exception:
@@ -207,7 +191,6 @@ class MIMOStepEngine:
 
     @staticmethod
     def step_metrics(tf_matrix) -> Dict[str, Optional[Dict[str, Any]]]:
-        """Basic step_info per SISO channel, if available."""
         out: Dict[str, Optional[Dict[str, Any]]] = {}
         if tf_matrix is None:
             return out
@@ -227,4 +210,88 @@ class MIMOStepEngine:
                     }
                 except Exception:
                     out[key] = None
+        return out
+
+
+# ---------- Engines (Second-order analytics & simulation) ----------
+
+class SecondOrderEngine:
+    """Analytics + simulation for standard second-order systems."""
+
+    @staticmethod
+    def infer_from_coeffs(K: float, a2: float, a1: float, a0: float) -> Tuple[float, float, float]:
+        if a2 <= 0 or a0 <= 0:
+            raise ValueError("Require a2>0 and a0>0 for a proper 2nd-order form.")
+        wn = np.sqrt(a0 / a2)
+        zeta = a1 / (2.0 * np.sqrt(a0 * a2))
+        K_eq = K * (wn ** 2) / a0  # match DC gain
+        return float(wn), float(zeta), float(K_eq)
+
+    @staticmethod
+    def analytic_metrics(wn: float, zeta: float) -> Dict[str, float]:
+        wd = wn * np.sqrt(max(0.0, 1.0 - zeta ** 2))
+        if 0 < zeta < 1:
+            Mp = np.exp(-zeta * np.pi / np.sqrt(1 - zeta ** 2)) * 100.0
+            Tp = np.pi / wd
+            Tr = (np.pi - np.arccos(zeta)) / wd
+        else:
+            Mp, Tp, Tr = 0.0, np.nan, np.nan
+        Ts = (4.0 / (zeta * wn)) if zeta > 0 else np.nan
+        return dict(Mp=float(Mp), Tp=float(Tp), Ts=float(Ts), Tr=float(Tr), wd=float(wd))
+
+    @staticmethod
+    def classify(zeta: float) -> str:
+        if zeta < 0:
+            return "unstable (negative damping)"
+        if np.isclose(zeta, 1.0):
+            return "critically damped"
+        if zeta < 1.0:
+            return "underdamped"
+        if zeta > 1.0:
+            return "overdamped"
+        return "undamped"
+
+    @staticmethod
+    def auto_time(wn: float, zeta: float, tfinal: float | None = None, dt: float = 1e-3) -> np.ndarray:
+        if tfinal is None:
+            tfinal = (6.0 / (zeta * wn)) if zeta > 0 else (8.0 / wn)
+        N = max(1000, int(tfinal / dt))
+        return np.linspace(0.0, tfinal, N)
+
+    @staticmethod
+    def step(model: SecondOrderModel, t: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+        G = model.system()
+        T, y = ct.step_response(G, T=t)  # current keyword API is fine here
+        return np.asarray(T), np.squeeze(np.asarray(y))
+
+    @staticmethod
+    def measure_step(T: np.ndarray, y: np.ndarray, tol: float = 0.02) -> Dict[str, float]:
+        y = np.asarray(y).ravel()
+        T = np.asarray(T).ravel()
+        y_final = y[-1]
+        y_peak = float(np.max(y))
+        Mp = max(0.0, (y_peak - y_final) / max(1e-12, y_final) * 100.0)
+        Tp = float(T[int(np.argmax(y))])
+        lower, upper = (1 - tol) * y_final, (1 + tol) * y_final
+        Ts = np.nan
+        for k in range(len(T) - 1, -1, -1):
+            if not (lower <= y[k] <= upper):
+                Ts = float(T[min(k + 1, len(T) - 1)])
+                break
+        y10, y90 = 0.1 * y_final, 0.9 * y_final
+        try:
+            t10 = float(T[np.where(y >= y10)[0][0]])
+            t90 = float(T[np.where(y >= y90)[0][0]])
+            Tr = t90 - t10
+        except Exception:
+            Tr = float('nan')
+        return dict(Mp=float(Mp), Tp=float(Tp), Ts=float(Ts), Tr=float(Tr), y_final=float(y_final), y_peak=y_peak)
+
+    @staticmethod
+    def sweep_zeta(wn: float, zetas: List[float], t: np.ndarray) -> Dict[str, Any]:
+        out: Dict[str, Any] = {"T": np.asarray(t).tolist(), "curves": []}
+        for z in zetas:
+            model = SecondOrderModel(wn=float(wn), zeta=float(z), K=None)
+            T, y = SecondOrderEngine.step(model, t)
+            out["curves"].append({"zeta": float(z), "y": y.tolist()})
         return out
