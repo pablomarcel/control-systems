@@ -1,0 +1,465 @@
+##########
+
+Linear Simulation
+
+##########
+
+## ✅ Example run commands (from repo root)
+
+# A) Unit ramp via state‑space augmentation
+
+python -m transientAnalysis.responseTool.cli ramp-ss \
+  --A "0 1; -1 -1" --B "0; 1" --C "1 0" --D "0" \
+  --tfinal 10 --dt 0.01 --plot
+
+# B) Arbitrary input (TF)
+
+python -m transientAnalysis.responseTool.cli lsim-tf --num "2 1" --den "1 1 1" --input ramp --tfinal 10 --dt 0.01 --plot
+
+python -m transientAnalysis.responseTool.cli lsim-tf --num "25"  --den "1 4 25" --input sine   --tfinal 10 --dt 0.01 --plot
+
+python -m transientAnalysis.responseTool.cli lsim-tf --num "25"  --den "1 4 25" --input square --tfinal 10 --dt 0.01 --plot
+
+# Class diagram (generates PlantUML text at transientAnalysis/responseTool/out/response_tool_classes.puml)
+
+python -c "from transientAnalysis.responseTool.tools.class_diagram import generate; import pathlib; print(generate(pathlib.Path('transientAnalysis/responseTool')))"
+
+## 🧪 Pytest
+
+pytest transientAnalysis/responseTool/tests -q
+
+## Next steps (scalability hooks)
+
+* Add `StepSignal` + direct unit‑step comparisons, steady‑state error metrics.
+* Plotly overlays & HTML exports (parallel Matplotlib/Plotly backends via strategy pattern).
+* Extend `ResponseEngine` to accept either `SSModel` or `TFModel` for all signals.
+* Sphinx docs: autodoc these classes; hook `tools/class_diagram.py` output into docs.
+
+# From repo root
+
+python -m transientAnalysis.responseTool.cli ramp-ss \
+  --A "0 1; -1 -1" --B "0; 1" --C "1 0" --D "0" \
+  --tfinal 10 --dt 0.01 --plot
+
+python -m transientAnalysis.responseTool.cli lsim-tf \
+  --num "2 1" --den "1 1 1" --input ramp --tfinal 10 --dt 0.01 --plot
+
+pytest transientAnalysis/responseTool/tests -q
+
+///
+
+# A) writes to transientAnalysis/responseTool/out by default
+
+python -m transientAnalysis.responseTool.cli ramp-ss \
+  --A "0 1; -1 -1" --B "0; 1" --C "1 0" --D "0" \
+  --tfinal 10 --dt 0.01 --plot
+
+# B)
+
+python -m transientAnalysis.responseTool.cli lsim-tf \
+  --num "2 1" --den "1 1 1" --input ramp --tfinal 10 --dt 0.01 --plot
+
+///
+
+# Default matrices already match Ogata Ex 5-3
+
+python -m transientAnalysis.responseTool.cli step-ss --plot
+
+# Step from u2 and save states
+
+python -m transientAnalysis.responseTool.cli step-ss --input-index 1 --states --plot
+
+# Export basic step metrics for all channels
+
+python -m transientAnalysis.responseTool.cli step-ss --metrics
+
+///
+
+python -m transientAnalysis.responseTool.cli step-ss --plot
+python -m transientAnalysis.responseTool.cli step-ss --input-index 1 --states --plot
+python -m transientAnalysis.responseTool.cli step-ss --metrics
+
+##########
+
+Custom File Names MIMO System
+
+##########
+
+# Example run commands (custom plant + custom filenames)
+
+## 1) Custom plant, step from u1, custom file prefix
+
+python -m transientAnalysis.responseTool.cli step-ss \
+  --A "-1 -1; 6.5 0" \
+  --B "1 1; 1 0" \
+  --C "1 0; 0 1" \
+  --D "0 0; 0 0" \
+  --input-index 0 \
+  --tfinal 8 --dt 0.01 \
+  --save-prefix "plantA_u" \
+  --plot
+
+Outputs:
+
+* `transientAnalysis/responseTool/out/plantA_u1.json`
+* `transientAnalysis/responseTool/out/plantA_u1.png`
+
+## 2) Step from u2, also export states with custom prefix
+
+python -m transientAnalysis.responseTool.cli step-ss \
+  --A "-1 -1; 6.5 0" \
+  --B "1 1; 1 0" \
+  --C "1 0; 0 1" \
+  --D "0 0; 0 0" \
+  --input-index 1 \
+  --tfinal 8 --dt 0.01 \
+  --save-prefix "robotArm_u" \
+  --states \
+  --states-name "robotArm_states_u" \
+  --plot
+
+Outputs:
+
+* `out/robotArm_u2.json`, `out/robotArm_u2.png`
+* `out/robotArm_states_u2.json`, `out/robotArm_states_u2.png`
+
+## 3) Put artifacts in a different folder (no filename changes)
+
+python -m transientAnalysis.responseTool.cli \
+  --root transientAnalysis/responseTool/out \
+  step-ss \
+  --A "-1 -1; 6.5 0" \
+  --B "1 1; 1 0" \
+  --C "1 0; 0 1" \
+  --D "0 0; 0 0" \
+  --input-index 0 \
+  --tfinal 5 --dt 0.005 \
+  --save-prefix "arm_run_u" \
+  --states --states-name "arm_run_states_u" \
+  --plot
+
+Outputs go to `transientAnalysis/responseTool/out`.
+
+## 4) Metrics only (names unaffected; always writes `ex5_3_step_metrics.json`)
+
+python -m transientAnalysis.responseTool.cli step-ss \
+  --metrics \
+  --A "-1 -1; 6.5 0" --B "1 1; 1 0" --C "1 0; 0 1" --D "0 0; 0 0"
+
+(If you want a custom metrics filename later, we can add `--metrics-name` too.)
+
+# Notes
+
+* `--input-index` is **0-based**.
+* For SISO tools (`ramp-ss`, `lsim-tf`), filenames are still fixed (`ramp_ss.*`, `lsim_tf_<input>.*`). If you want custom names there too, we can add an optional `--save-prefix` to those subcommands the same way.
+
+///
+
+defaults to transientAnalysis/responseTool/out
+
+python -m transientAnalysis.responseTool.cli \
+  step-ss \
+  --A "-1 -1; 6.5 0" \
+  --B "1 1; 1 0" \
+  --C "1 0; 0 1" \
+  --D "0 0; 0 0" \
+  --input-index 0 \
+  --tfinal 5 --dt 0.005 \
+  --save-prefix "arm_run_u" \
+  --states --states-name "arm_run_states_u"
+
+///
+
+defaults to transientAnalysis/responseTool/out perhaps it is a bug.
+
+python -m transientAnalysis.responseTool.cli \
+  --root transientAnalysis/responseTool/out/ \
+  step-ss \
+  --A "-1 -1; 6.5 0" \
+  --B "1 1; 1 0" \
+  --C "1 0; 0 1" \
+  --D "0 0; 0 0" \
+  --input-index 0 \
+  --tfinal 5 --dt 0.005 \
+  --save-prefix "arm_run_u" \
+  --states --states-name "arm_run_states_u" \
+  --plot
+
+##########
+
+Second Order Systems
+
+##########
+
+# ✅ Quick usage
+
+From your repo root:
+
+**Single (parameters):**
+
+python -m transientAnalysis.responseTool.cli second-order \
+  --wn 5 --zeta 0.4 --tfinal 2 --dt 0.001 --plot \
+  --save-prefix "plantB"
+
+# -> transientAnalysis/responseTool/out/plantB_single.json|.png
+
+**Single (coeffs):**
+
+python -m transientAnalysis.responseTool.cli second-order \
+  --coeffs 25 1 4 25 --tfinal 2 --dt 0.001 --plot \
+  --save-prefix "from_coeffs"
+
+# -> out/from_coeffs_single.json|.png
+
+**Sweep:**
+
+python -m transientAnalysis.responseTool.cli second-order \
+  --wn 5 --sweep-zeta "0.0,0.2,0.4,0.7,1.0,2.0" --tfinal 2 --dt 0.001 --plot \
+  --save-prefix "sweep_demo"
+
+# -> out/sweep_demo_sweep.json|.png
+
+If you want artifacts somewhere else (e.g., the “double-out” pattern):
+
+python -m transientAnalysis.responseTool.cli --root transientAnalysis/responseTool/out second-order --wn 5 --zeta 0.4 --plot
+
+# -> transientAnalysis/responseTool/out/out/...
+
+---
+
+# 📚 Docs / diagrams
+
+* Your class diagram tool should now show `SecondOrderModel` and `SecondOrderEngine`.
+* These docstrings are ready to be picked up by Sphinx later.
+
+If you want me to also add custom filename flags for the SISO `ramp-ss` / `lsim-tf` commands (like we did for `step-ss`), say the word and I’ll wire them up the same way.
+
+##########
+
+Example Section 5-5
+
+##########
+
+Yep! Your new `responseTool` already covers everything `example_5_5_1.py` does—just use the `second-order` subcommand. Here are plug-and-play runs that mirror the original script’s modes.
+
+## 1) Standard form (given ωn, ζ, optional K)
+
+Auto-chooses `K = ωn²` if you omit `--K`, saves plot + JSON.
+
+python -m transientAnalysis.responseTool.cli second-order \
+  --wn 5 --zeta 0.4 --tfinal 2 --dt 0.001 --plot \
+  --save-prefix "ex5_5_1"
+
+# outputs -> transientAnalysis/responseTool/out/ex5_5_1_single.json|.png
+
+## 2) From coefficients (K, a2, a1, a0)
+
+Matches the example’s `25/(s^2 + 4 s + 25)`.
+
+python -m transientAnalysis.responseTool.cli second-order \
+  --coeffs 25 1 4 25 --tfinal 2 --dt 0.001 --plot \
+  --save-prefix "ex5_5_1_coeffs"
+
+# -> out/ex5_5_1_coeffs_single.json|.png
+
+## 3) ζ sweep on one figure
+
+Exactly like the example’s sweep list.
+
+python -m transientAnalysis.responseTool.cli second-order \
+  --wn 5 --sweep-zeta "0.0,0.2,0.4,0.7,1.0,2.0" \
+  --tfinal 2 --dt 0.001 --plot \
+  --save-prefix "ex5_5_1_sweep"
+
+# -> out/ex5_5_1_sweep.json|.png
+
+## 4) Put artifacts somewhere specific
+
+Want the “double-out” path (`.../out/out`)? Set `--root` to the package out dir:
+
+python -m transientAnalysis.responseTool.cli \
+  --root transientAnalysis/responseTool/out \
+  second-order --wn 5 --zeta 0.4 --plot --save-prefix "ex5_5_1"
+
+# -> transientAnalysis/responseTool/out/out/ex5_5_1_single.json|.png
+
+Or a clean run folder in your repo:
+
+python -m transientAnalysis.responseTool.cli \
+  --root ./runs/second_order_2025_09_29 \
+  second-order --coeffs 25 1 4 25 --plot --save-prefix "so_run"
+
+# -> ./runs/second_order_2025_09_29/out/so_run_single.json|.png
+
+### What gets saved
+
+* **Single:** `<prefix>_single.json|.png` with:
+
+  * parameters (ωn, ζ, K), time vector `T`, response `y`
+  * analytic metrics (Mp, Tp, Ts, Tr) and measured metrics (from simulation)
+  * classification (underdamped/overdamped/etc.)
+* **Sweep:** `<prefix>_sweep.json|.png` with `T` and one `y` curve per ζ.
+
+If you want console prints exactly like the standalone script, we can add a `--verbose` flag to echo the metrics while still writing JSON—just say the word.
+
+
+##########
+
+Second Order Overlays
+
+##########
+
+### New commands (quick ref)
+
+* 2D overlays:
+
+python -m transientAnalysis.responseTool.cli second-order-overlays \
+--wn 5 --zetas "0,0.2,0.4,0.8,1.0" --tfinal 8 --dt 0.01 \
+--save-prefix "std2_overlay_demo" --plot
+
+* 3D mesh:
+
+python -m transientAnalysis.responseTool.cli second-order-mesh \
+--wn 5 --zeta-min 0 --zeta-max 1 --zeta-steps 51 \
+--tfinal 8 --dt 0.01 --save-prefix "std2_surface_demo" --plot
+
+* As always, you can route output anywhere with `--root`, e.g. `--root transientAnalysis/responseTool/out/out`.
+
+Got it—let’s focus on just the new 2D/3D second-order features and give you a clean, working set of commands. These assume your CLI has the two new subcommands:
+
+* `second-order-overlays` (2D multi-ζ overlay)
+* `second-order-mesh` (3D surface + heatmap)
+
+You can add `--plot` to pop up the figures, or omit it to just save files.
+
+### Quick sanity checks (use package default out dir)
+
+**2D overlays (defaults for ζ list):**
+
+python -m transientAnalysis.responseTool.cli second-order-overlays \
+  --wn 5 --tfinal 8 --dt 0.01 --plot
+
+Outputs:
+
+* `.../out/second_order_2D.json`
+* `.../out/second_order_2D.png`
+
+**3D mesh (uniform ζ grid):**
+
+python -m transientAnalysis.responseTool.cli second-order-mesh \
+  --wn 5 --zeta-min 0 --zeta-max 1 --zeta-steps 51 \
+  --tfinal 8 --dt 0.01 --plot
+
+Outputs:
+
+* `.../out/second_order_3D.json`
+* `.../out/second_order_3D.png`
+* `.../out/second_order_3D_heatmap.png`
+
+### Custom ζ list + custom filenames
+
+**2D overlays with your own ζ list and prefix:**
+
+python -m transientAnalysis.responseTool.cli second-order-overlays \
+  --wn 5 --zetas "0,0.2,0.4,0.8,1.0" \
+  --tfinal 8 --dt 0.01 \
+  --save-prefix "std2_overlay_demo" --plot
+
+Outputs:
+
+* `.../out/std2_overlay_demo_2D.json`
+* `.../out/std2_overlay_demo_2D.png`
+
+**3D mesh with custom prefix:**
+
+python -m transientAnalysis.responseTool.cli second-order-mesh \
+  --wn 5 --zeta-min 0 --zeta-max 1 --zeta-steps 51 \
+  --tfinal 8 --dt 0.01 \
+  --save-prefix "std2_surface_demo" --plot
+
+Outputs:
+
+* `.../out/std2_surface_demo_3D.json`
+* `.../out/std2_surface_demo_3D.png`
+* `.../out/std2_surface_demo_3D_heatmap.png`
+
+### Put results in a specific project folder
+
+If you don’t want anything going to `/tmp` or the default package path, set `--root` to anywhere inside your repo. For example, to write into `transientAnalysis/responseTool/out/out`:
+
+**2D overlays to nested out dir:**
+
+python -m transientAnalysis.responseTool.cli second-order-overlays \
+  --root transientAnalysis/responseTool/out/out \
+  --wn 5 --zetas "0,0.3,0.6,1.0" \
+  --tfinal 8 --dt 0.01 \
+  --save-prefix "overlay_run" --plot
+
+**3D mesh to the same place:**
+
+python -m transientAnalysis.responseTool.cli second-order-mesh \
+  --root transientAnalysis/responseTool/out/out \
+  --wn 3 --zeta-min 0 --zeta-max 1 --zeta-steps 61 \
+  --tfinal 10 --dt 0.01 \
+  --save-prefix "mesh_run" --plot
+
+### Headless runs (no GUI)
+
+Just drop `--plot`. Files are still saved.
+
+---
+
+If any of these don’t run, the usual culprits are:
+
+* Typo in the subcommand (`second-order-overlays` vs `second-order-mesh`)
+* Shell quoting (keep the ζ list in quotes)
+* Missing parser args (make sure your `cli.py` includes the two new subparsers and forwards `--root`, `--save-prefix`, etc.)
+
+Want me to also add a Plotly flag later for interactive 3D surfaces?
+
+##########
+
+Plotly 3D Plots
+
+##########
+
+# Run commands (project out dir)
+
+* Minimal interactive surface (just JSON snapshot unless you also save HTML):
+
+python -m transientAnalysis.responseTool.cli second-order-plotly \
+  --wn 5 --zeta-min 0 --zeta-max 1 --zeta-steps 61 \
+  --tfinal 8 --dt 0.01 \
+  --save-prefix "std2_plotly"
+
+* Save interactive HTML (open it in your browser; file goes to `responseTool/out/`):
+
+python -m transientAnalysis.responseTool.cli second-order-plotly \
+  --wn 5 --zeta-min 0 --zeta-max 1 --zeta-steps 61 \
+  --tfinal 8 --dt 0.01 \
+  --overlay "0,0.2,0.7,1.0" \
+  --title "Overlay slices" \
+  --save-prefix "std2_plotly_overlay" \
+  --save-html "std2_plotly_overlay.html"
+
+* Save PNG too (requires `kaleido`):
+
+python -m transientAnalysis.responseTool.cli second-order-plotly \
+  --wn 3 \
+  --zeta-min 0 --zeta-max 1 --zeta-steps 41 \
+  --tfinal 6 --dt 0.01 \
+  --overlay "0.1,0.4,0.7" \
+  --save-prefix "std2_plotly_png" \
+  --save-html "std2_plotly_png.html" \
+  --save-png  "std2_plotly_png.png"
+
+---
+
+## Why this approach?
+
+* **No duplication**: we reuse your `SecondOrderSurfaceEngine.mesh()` for data.
+* **Optional dependency**: Plotly is only imported in the new method; everything else keeps working if it’s not installed.
+* **Nice artifacts**: JSON (for tests or notebooks), HTML (interactive), PNG (optional).
+* **Stays in your project out/** by default, so you can view artifacts directly in PyCharm.
+
+If you want me to wire up a tiny smoke test for the new command that just asserts the JSON exists (and skips if Plotly isn’t installed), I can draft that too.

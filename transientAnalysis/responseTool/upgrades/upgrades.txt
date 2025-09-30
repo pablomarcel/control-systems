@@ -1,0 +1,49 @@
+##########
+
+Linear Simulation
+
+##########
+
+## Next steps (scalability hooks)
+
+* Add `StepSignal` + direct unit‑step comparisons, steady‑state error metrics.
+* Plotly overlays & HTML exports (parallel Matplotlib/Plotly backends via strategy pattern).
+* Extend `ResponseEngine` to accept either `SSModel` or `TFModel` for all signals.
+* Sphinx docs: autodoc these classes; hook `tools/class_diagram.py` output into docs.
+
+##########
+
+Custom File Names MIMO System
+
+##########
+
+##########
+
+Second Order Systems
+
+##########
+
+If you want me to also add custom filename flags for the SISO `ramp-ss` / `lsim-tf` commands (like we did for `step-ss`), say the word and I’ll wire them up the same way.
+
+##########
+
+Example Section 5-5
+
+##########
+
+If you want console prints exactly like the standalone script, we can add a `--verbose` flag to echo the metrics while still writing JSON—just say the word.
+
+##########
+
+Second Order
+
+##########
+
+Tests (quick smoke ideas)
+
+* **Overlays:** check JSON keys and shapes.
+* **Mesh:** check `Z.shape == (zeta_steps, len(T))`.
+* **Metrics:** monotonicity / finite values for typical ζ.
+
+If you want, I can sketch `pytest` smoke tests next.
+Want me to also add a Plotly flag later for interactive 3D surfaces?

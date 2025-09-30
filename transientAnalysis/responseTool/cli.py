@@ -10,9 +10,17 @@ from .app import ResponseToolApp
 
 
 def parse_zetas_list(s: str | None) -> list[float]:
-    """Parse comma/space-separated zeta list."""
+    """Parse comma/space-separated zeta list. If empty/None, return a sensible default grid."""
     if not s:
         return [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]
+    toks = [t for t in s.replace(",", " ").split() if t.strip()]
+    return [float(t) for t in toks]
+
+
+def parse_overlay_list(s: str | None) -> list[float]:
+    """Like parse_zetas_list but empty/None returns [] (used for Plotly overlays)."""
+    if not s:
+        return []
     toks = [t for t in s.replace(",", " ").split() if t.strip()]
     return [float(t) for t in toks]
 
@@ -21,7 +29,7 @@ def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         description=(
             "ResponseTool — unit ramp (SS), arbitrary input (TF), "
-            "MIMO SS step, and 2nd-order explorer (2D overlays / 3D mesh)"
+            "MIMO SS step, and 2nd-order explorer (2D overlays / 3D mesh / Plotly 3D)"
         ),
         conflict_handler="resolve",
     )
@@ -131,6 +139,25 @@ def build_parser() -> argparse.ArgumentParser:
     pF.add_argument("--plot", action="store_true",
                     help="Render and save the 3D wireframe (requires matplotlib)")
 
+    # G) Second-order Plotly 3D surface (interactive)
+    pG = sub.add_parser("second-order-plotly", parents=[common],
+                        help="Interactive Plotly 3D surface for standard 2nd-order system")
+    pG.add_argument("--wn", type=float, default=1.0, help="Natural frequency ωn (rad/s)")
+    pG.add_argument("--zeta-min", type=float, default=0.0, help="Min ζ")
+    pG.add_argument("--zeta-max", type=float, default=1.0, help="Max ζ")
+    pG.add_argument("--zeta-steps", type=int, default=51, help="Number of ζ samples")
+    pG.add_argument("--tfinal", type=float, default=10.0, help="Simulation horizon (s)")
+    pG.add_argument("--dt", type=float, default=0.01, help="Time step (s)")
+    pG.add_argument("--overlay", type=str, default="",
+                    help="Comma/space list of ζ to overlay (3D line slices)")
+    pG.add_argument("--title", type=str, default="", help="Custom title suffix")
+    pG.add_argument("--save-prefix", type=str, default="plotly_surface",
+                    help="filename prefix for JSON snapshot (default: plotly_surface)")
+    pG.add_argument("--save-html", type=str, default="",
+                    help="relative filename under out/ for interactive HTML")
+    pG.add_argument("--save-png", type=str, default="",
+                    help="relative filename under out/ for PNG (needs kaleido)")
+
     return p
 
 
@@ -218,6 +245,25 @@ def main(argv: list[str] | None = None) -> int:
             title_suffix="",
             plot_heatmap=(not bool(getattr(args, "no_heatmap", False))),
             plotly=bool(getattr(args, "plotly", False)),
+        )
+        return 0
+
+    if args.cmd == "second-order-plotly":
+        overlay = parse_overlay_list(getattr(args, "overlay", None))
+        save_html = getattr(args, "save_html", "") or None
+        save_png = getattr(args, "save_png", "") or None
+        app.second_order_plotly_surface(
+            wn=float(args.wn),
+            zeta_min=float(args.zeta_min),
+            zeta_max=float(args.zeta_max),
+            zeta_steps=int(args.zeta_steps),
+            tfinal=float(args.tfinal),
+            dt=float(args.dt),
+            overlay=overlay,
+            title=str(getattr(args, "title", "") or ""),
+            save_prefix=str(args.save_prefix),
+            save_html=save_html,
+            save_png=save_png,
         )
         return 0
 
