@@ -1,6 +1,7 @@
 # rootLocus/systemResponseTool/app.py
 from __future__ import annotations
-from dataclasses import dataclass
+
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Iterable, List, Optional, Tuple
 
@@ -9,7 +10,7 @@ import plotly.graph_objects as go
 
 from .core import (
     SysSpec, Parser, TransferFunctionBuilder, SignalGenerator,
-    ResponseEngine, Responses, ICMode
+    ResponseEngine, ICMode
 )
 from .io import Exporter
 from .utils import default_palette, make_logger, make_figure, add_trace
@@ -21,6 +22,13 @@ class SystemResponseApp:
     in_dir: Path
     out_dir: Path
     show_plots: bool = True
+
+    # declare slotted fields so __post_init__ can assign them
+    parser: Parser = field(init=False)
+    tf_builder: TransferFunctionBuilder = field(init=False)
+    signals: SignalGenerator = field(init=False)
+    engine: ResponseEngine = field(init=False)
+    export: Exporter = field(init=False)
 
     def __post_init__(self):
         self.in_dir.mkdir(parents=True, exist_ok=True)
@@ -167,10 +175,11 @@ class SystemResponseApp:
     def run_ic(self, specs: List[SysSpec], T: np.ndarray, *,
                which: ICMode, compare: bool,
                title: str = "", out_prefix: Optional[str] = None) -> go.Figure:
-        assert which in (ICMode.IC1, ICMode.IC2)
-        ylab = "States x_i(t)" if which is ICMode.IC1 else "Outputs y_j(t)"
+        from .core import ICMode as _IC  # avoid circular import name resolution issues
+        assert which in (_IC.IC1, _IC.IC2)
+        ylab = "States x_i(t)" if which is _IC.IC1 else "Outputs y_j(t)"
         ttl = ("Case 1 — states from initial condition"
-               if which is ICMode.IC1 else "Case 2 — outputs from initial condition")
+               if which is _IC.IC1 else "Case 2 — outputs from initial condition")
         if compare:
             ttl += " (direct vs step-equivalent)"
         fig = make_figure(title or ttl, ylab)
@@ -193,7 +202,7 @@ class SystemResponseApp:
                           spec.style.name, x0.size, n)
                 continue
 
-            if which is ICMode.IC1:
+            if which is _IC.IC1:
                 Xd = self.engine.ic_case1_direct(spec.A, x0, T)
                 for i in range(Xd.shape[0]):
                     name = f"{spec.style.name}: x{i+1}"
@@ -225,7 +234,7 @@ class SystemResponseApp:
         if self.show_plots:
             fig.show()
         if out_prefix:
-            tag = ("ic1" if which is ICMode.IC1 else "ic2") + ("_compare" if compare else "")
+            tag = ("ic1" if which is _IC.IC1 else "ic2") + ("_compare" if compare else "")
             self.export.save_csv(f"{out_prefix}_{tag}.csv", T, series)
             self.export.save_html(fig, f"{out_prefix}_{tag}.html")
         return fig
