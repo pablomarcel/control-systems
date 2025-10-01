@@ -1,3 +1,4 @@
+# modernControl/rootLocus/compensatorTool/cli.py
 from __future__ import annotations
 
 from typing import Optional, Tuple
@@ -10,6 +11,9 @@ def cli():
     """Lag–Lead designer (Ogata Sec. 6-8), multi-lead edition - rootLocus.compensatorTool."""
 
 
+# -----------------------------------------------------------------------------
+# Lead–Lag (multi-lead) designer
+# -----------------------------------------------------------------------------
 @cli.command(
     "design",
     help=(
@@ -134,6 +138,82 @@ def design_cmd(
         magwin=tuple(float(x) for x in magwin.split(",")),
         T2max=t2max,
         plot=plot,
+    )
+
+
+# -----------------------------------------------------------------------------
+# Lag-only designer (Ogata §6-7)
+# -----------------------------------------------------------------------------
+@cli.command(
+    "lag",
+    help=(
+        "Lag-only compensator design (Ogata §6-7): size β from target/factor or set explicitly; "
+        "auto-place z,p near origin with small angle at s*, then size Kc from |L(s*)|=1."
+    ),
+)
+@click.option("--num", required=True, help="Plant numerator coeffs (descending)")
+@click.option("--den", required=True, help="Plant denominator coeffs (descending)")
+@click.option("--zeta", type=float, default=None, help="Desired damping ratio (0<zeta<1)")
+@click.option("--wn", type=float, default=None, help="Desired natural frequency (>0)")
+@click.option("--sreal", type=float, default=None, help="Desired pole real part sigma")
+@click.option("--wimag", type=float, default=None, help="Desired pole imag part wd (>=0)")
+@click.option("--err", type=click.Choice(["kp", "kv", "ka"]), default="kv")
+@click.option("--target", type=float, default=None, help="Target Kp/Kv/Ka")
+@click.option("--factor", type=float, default=None, help="Improvement factor r(>1)")
+@click.option("--beta", type=float, default=None, help="Fix beta (>1)")
+@click.option("--z", "z_user", type=float, default=None, help="Place zero at s=-z (z>0). Require --p too.")
+@click.option("--p", "p_user", type=float, default=None, help="Place pole at s=-p (p>0, and p<z).")
+@click.option("--T", "T_user", type=float, default=None, help="With --beta, use z=1/T, p=1/(βT).")
+@click.option("--thetamax", type=float, default=5.0, help="Max angle at s* for auto z/p (deg)")
+@click.option("-v", "--verbose", count=True)
+def lag_cmd(
+    num, den, zeta, wn, sreal, wimag,
+    err, target, factor, beta, z_user, p_user, T_user, thetamax, verbose
+):
+    """Run a lag-only compensator design and print a summary."""
+    # Lazy imports to keep `--help` fast
+    from .apis import PoleSpec
+    from .utils import LOG
+    import logging
+
+    if verbose >= 2:
+        LOG.setLevel(logging.DEBUG)
+    elif verbose == 1:
+        LOG.setLevel(logging.INFO)
+    else:
+        LOG.setLevel(logging.INFO)
+
+    # Pole spec
+    if zeta is not None:
+        if wn is None or wn <= 0:
+            raise click.BadParameter("When --zeta is provided, --wn (>0) is also required.")
+        pole = PoleSpec.from_zeta_wn(zeta, wn)
+    else:
+        if sreal is None or wimag is None:
+            raise click.BadParameter("Provide either (--zeta, --wn) or (--sreal, --wimag).")
+        pole = PoleSpec.from_parts(sreal, wimag)
+
+    # Orchestrate via Lag App
+    from .lag import LagCompensatorApp
+    import numpy as _np
+
+    def _parse_list(s: str) -> _np.ndarray:
+        toks = [t for t in s.replace(";", ",").split(",") if t.strip()]
+        return _np.array([float(t) for t in toks], dtype=float)
+
+    App = LagCompensatorApp()
+    App.run(
+        pole=pole,
+        num=_parse_list(num),
+        den=_parse_list(den),
+        err=err,
+        target=target,
+        factor=factor,
+        beta=beta,
+        z_user=z_user,
+        p_user=p_user,
+        T_user=T_user,
+        thetamax=thetamax,
     )
 
 
