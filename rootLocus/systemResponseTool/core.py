@@ -1,5 +1,6 @@
 # rootLocus/systemResponseTool/core.py
 from __future__ import annotations
+
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import List, Optional, Tuple
@@ -9,7 +10,7 @@ import control as ct
 
 from .utils import (
     parse_matrix, parse_vector, parse_poly, split_top_level,
-    make_logger
+    make_logger,
 )
 
 log = make_logger(__name__)
@@ -22,6 +23,7 @@ class SysStyle:
     color: Optional[str] = None
     dash: str = "solid"
     width: float = 3.0
+
 
 @dataclass(slots=True)
 class SysSpec:
@@ -44,6 +46,7 @@ class SysSpec:
     # style
     style: SysStyle = field(default_factory=lambda: SysStyle(name="sys"))
 
+
 class Responses(str, Enum):
     STEP = "step"
     RAMP = "ramp"
@@ -52,9 +55,11 @@ class Responses(str, Enum):
     IC1 = "ic1"
     IC2 = "ic2"
 
+
 class ICMode(Enum):
     IC1 = 1
     IC2 = 2
+
 
 # ---------- Parsing ----------
 
@@ -121,9 +126,12 @@ class Parser:
                 outs_sel = sorted(set([int(t) for t in toks2]))
 
         log.info("Built system '%s' (ss, fb=%s).", name, fb)
-        return SysSpec(kind="ss", name=name, A=A, B=B, C=C, D=D,
-                       in_idx=in_idx, out_idx=out_idx, fb=fb,
-                       x0=x0, outs_sel=outs_sel, style=style)
+        return SysSpec(
+            kind="ss", name=name, A=A, B=B, C=C, D=D,
+            in_idx=in_idx, out_idx=out_idx, fb=fb,
+            x0=x0, outs_sel=outs_sel, style=style
+        )
+
 
 # ---------- TF builder ----------
 
@@ -139,6 +147,7 @@ class TransferFunctionBuilder:
             raise ValueError(f"Invalid in/out index for SS: {e}") from e
         return ct.feedback(G_io, 1) if spec.fb == "unity" else G_io
 
+
 # ---------- signals ----------
 
 class SignalGenerator:
@@ -146,8 +155,10 @@ class SignalGenerator:
         U = T.copy()
         return U, "u(t)=t (ramp)"
 
-    def arb(self, kind: str, T: np.ndarray, amp: float, freq: float,
-            duty: float, expr: str, file_path: str) -> Tuple[np.ndarray, str]:
+    def arb(
+        self, kind: str, T: np.ndarray, amp: float, freq: float,
+        duty: float, expr: str, file_path: str
+    ) -> Tuple[np.ndarray, str]:
         if kind == "ramp":
             return self.ramp(T)
         if kind == "sine":
@@ -183,9 +194,10 @@ class SignalGenerator:
                 raise ValueError(f"[arb file] {ve}") from ve
             except Exception as e:
                 raise ValueError(f"[arb file] cannot read '{file_path}': {e}") from e
-            # caller will interpolate on their fixed grid if needed; we do it now:
+            # We return raw u(t); caller can interpolate to its own grid if needed.
             return np.asarray(u_col, float), f"u(t) from '{file_path}'"
         raise ValueError(f"Unknown arb kind '{kind}'")
+
 
 # ---------- engine (wrappers + IC) ----------
 
@@ -245,40 +257,59 @@ class ResponseEngine:
 
     # ------ initial-condition modes (Ogata §5-5) ------
     def ic_case1_direct(self, A: np.ndarray, x0: np.ndarray, T: np.ndarray) -> np.ndarray:
+        """Case 1: states as outputs (C=I), u ≡ 0."""
         n = A.shape[0]
         sys = ct.ss(A, np.zeros((n, 1)), np.eye(n), np.zeros((n, 1)))
         t, X = ct.initial_response(sys, T=T, X0=x0)
         X = np.asarray(X, float)
-        if X.ndim == 1: X = X.reshape(1, -1)
+        if X.ndim == 1:
+            X = X.reshape(1, -1)
         return X
 
     def ic_case1_step_equiv(self, A: np.ndarray, x0: np.ndarray, T: np.ndarray) -> np.ndarray:
+        """
+        Step-equivalent for Case 1 (states as outputs):
+          System: A, B = A x0, C = I, D = x0, input u(t) = 1
+        Produces x(t) = e^{At} x0.
+        """
         n = A.shape[0]
-        B = x0.reshape(n, 1)
-        sys = ct.ss(A, B, np.eye(n), np.zeros((n, 1)))
+        x0 = np.asarray(x0).reshape(n)
+        B = (A @ x0).reshape(n, 1)     # A x0
+        C = np.eye(n)
+        D = x0.reshape(n, 1)           # + x0 term
+        sys = ct.ss(A, B, C, D)
         U = np.ones_like(T)
         t, X, _ = self.forced(sys, U, T)
         X = np.asarray(X, float)
-        if X.ndim == 1: X = X.reshape(1, -1)
+        if X.ndim == 1:
+            X = X.reshape(1, -1)
         return X
 
     def ic_case2_direct(self, A: np.ndarray, C_sel: np.ndarray, x0: np.ndarray, T: np.ndarray) -> np.ndarray:
+        """Case 2: outputs y = C_sel x from x(0)=x0, u ≡ 0."""
         n = A.shape[0]
         m = C_sel.shape[0]
         sys = ct.ss(A, np.zeros((n, 1)), C_sel, np.zeros((m, 1)))
         t, Y = ct.initial_response(sys, T=T, X0=x0)
         Y = np.asarray(Y, float)
-        if Y.ndim == 1: Y = Y.reshape(1, -1)
+        if Y.ndim == 1:
+            Y = Y.reshape(1, -1)
         return Y
 
     def ic_case2_step_equiv(self, A: np.ndarray, C_sel: np.ndarray, x0: np.ndarray, T: np.ndarray) -> np.ndarray:
+        """
+        Step-equivalent for Case 2 (selected outputs):
+          System: A, B = A x0, C = C_sel, D = C_sel x0, input u(t) = 1
+        Produces y(t) = C_sel e^{At} x0.
+        """
         n = A.shape[0]
-        m = C_sel.shape[0]
-        B = x0.reshape(n, 1)
-        D = (C_sel @ x0.reshape(n, 1))
+        x0 = np.asarray(x0).reshape(n)
+        B = (A @ x0).reshape(n, 1)            # A x0
+        D = (C_sel @ x0.reshape(n, 1))        # + C_sel x0
         sys = ct.ss(A, B, C_sel, D)
         U = np.ones_like(T)
         t, Y, _ = self.forced(sys, U, T)
         Y = np.asarray(Y, float)
-        if Y.ndim == 1: Y = Y.reshape(1, -1)
+        if Y.ndim == 1:
+            Y = Y.reshape(1, -1)
         return Y
