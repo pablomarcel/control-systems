@@ -1,0 +1,9 @@
+[run]
+branch = True
+source = rootLocus/systemResponseTool
+
+[html]
+directory = rootLocus/systemResponseTool/out/htmlcov
+
+[report]
+show_missing = True
