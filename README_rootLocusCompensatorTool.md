@@ -192,6 +192,27 @@ python -m rootLocus.compensatorTool.cli lag   --num "1.06" --den "1,3,2,0"   --s
 
 ---
 
+## Lead-only subcommand (Ogata §6–6)
+
+### Help
+```bash
+python -m rootLocus.compensatorTool.cli lead --help
+```
+
+### Method 1 (bisector construction)
+
+```bash
+python -m rootLocus.compensatorTool.cli lead   --num "10" --den "1,1,0"   --zeta 0.5 --wn 3   --method 1
+```
+
+### Method 2 (zero cancels a pole at −1)
+
+```bash
+python -m rootLocus.compensatorTool.cli lead   --num "10" --den "1,1,0"   --zeta 0.5 --wn 3   --method 2 --cancel-at -1
+```
+
+---
+
 ### Tip for CI
 
 Silence Matplotlib warnings during plotting:

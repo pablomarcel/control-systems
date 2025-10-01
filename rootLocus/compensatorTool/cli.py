@@ -1,7 +1,7 @@
 # modernControl/rootLocus/compensatorTool/cli.py
 from __future__ import annotations
 
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Literal
 import click
 
 
@@ -11,9 +11,7 @@ def cli():
     """Lag–Lead designer (Ogata Sec. 6-8), multi-lead edition - rootLocus.compensatorTool."""
 
 
-# -----------------------------------------------------------------------------
-# Lead–Lag (multi-lead) designer
-# -----------------------------------------------------------------------------
+# --- multi-lead lag–lead "design" subcommand ---------------------------------
 @cli.command(
     "design",
     help=(
@@ -78,11 +76,10 @@ def design_cmd(
     verbose,
 ):
     """Run a compensator design and print a summary (with optional plots)."""
-    # Lazy imports so `--help` is light and robust
     from .apis import PoleSpec
     from .utils import LOG
-
     import logging
+
     if verbose >= 2:
         LOG.setLevel(logging.DEBUG)
     elif verbose == 1:
@@ -141,9 +138,7 @@ def design_cmd(
     )
 
 
-# -----------------------------------------------------------------------------
-# Lag-only designer (Ogata §6-7)
-# -----------------------------------------------------------------------------
+# --- Lag-only subcommand -----------------------------------------------------
 @cli.command(
     "lag",
     help=(
@@ -171,10 +166,10 @@ def lag_cmd(
     err, target, factor, beta, z_user, p_user, T_user, thetamax, verbose
 ):
     """Run a lag-only compensator design and print a summary."""
-    # Lazy imports to keep `--help` fast
     from .apis import PoleSpec
     from .utils import LOG
     import logging
+    import numpy as _np
 
     if verbose >= 2:
         LOG.setLevel(logging.DEBUG)
@@ -193,9 +188,7 @@ def lag_cmd(
             raise click.BadParameter("Provide either (--zeta, --wn) or (--sreal, --wimag).")
         pole = PoleSpec.from_parts(sreal, wimag)
 
-    # Orchestrate via Lag App
     from .lag import LagCompensatorApp
-    import numpy as _np
 
     def _parse_list(s: str) -> _np.ndarray:
         toks = [t for t in s.replace(";", ",").split(",") if t.strip()]
@@ -214,6 +207,70 @@ def lag_cmd(
         p_user=p_user,
         T_user=T_user,
         thetamax=thetamax,
+    )
+
+
+# --- Lead-only subcommand ----------------------------------------------------
+@cli.command(
+    "lead",
+    help=(
+        "Lead-only compensator design (Ogata §6-6): Method 1 (bisector) or Method 2 (zero cancels a pole); "
+        "sizes Kc so that |L(s*)|=1 at the desired pole."
+    ),
+)
+@click.option("--num", required=True, help="Plant numerator coeffs (descending)")
+@click.option("--den", required=True, help="Plant denominator coeffs (descending)")
+@click.option("--zeta", type=float, default=None, help="Desired damping ratio (0<zeta<1)")
+@click.option("--wn", type=float, default=None, help="Desired natural frequency (>0)")
+@click.option("--sreal", type=float, default=None, help="Desired pole real part sigma")
+@click.option("--wimag", type=float, default=None, help="Desired pole imag part wd (>=0)")
+@click.option("--method", type=click.Choice(["1", "2", "bisector", "cancel"]), default="1")
+@click.option("--cancel-at", type=float, default=None, help="(Method 2) real location for compensator zero")
+@click.option("-v", "--verbose", count=True)
+def lead_cmd(
+    num, den, zeta, wn, sreal, wimag, method, cancel_at, verbose
+):
+    """Run a lead-only compensator design and print a summary."""
+    from .apis import PoleSpec
+    from .utils import LOG
+    import logging
+    import numpy as _np
+    from .lead import LeadCompensatorApp
+
+    if verbose >= 2:
+        LOG.setLevel(logging.DEBUG)
+    elif verbose == 1:
+        LOG.setLevel(logging.INFO)
+    else:
+        LOG.setLevel(logging.INFO)
+
+    # Pole spec
+    if zeta is not None:
+        if wn is None or wn <= 0:
+            raise click.BadParameter("When --zeta is provided, --wn (>0) is also required.")
+        pole = PoleSpec.from_zeta_wn(zeta, wn)
+    else:
+        if sreal is None or wimag is None:
+            raise click.BadParameter("Provide either (--zeta, --wn) or (--sreal, --wimag).")
+        pole = PoleSpec.from_parts(sreal, wimag)
+
+    def _parse_list(s: str) -> _np.ndarray:
+        toks = [t for t in s.replace(";", ",").split(",") if t.strip()]
+        return _np.array([float(t) for t in toks], dtype=float)
+
+    m: Literal["method1", "method2"]
+    if method in ("1", "bisector"):
+        m = "method1"
+    else:
+        m = "method2"
+
+    App = LeadCompensatorApp()
+    App.run(
+        pole=pole,
+        num=_parse_list(num),
+        den=_parse_list(den),
+        method=m,
+        cancel_at=cancel_at,
     )
 
 
