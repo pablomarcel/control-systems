@@ -1,0 +1,9 @@
+[run]
+branch = True
+source = frequencyResponse/experimentTool
+
+[html]
+directory = frequencyResponse/experimentTool/out/htmlcov
+
+[report]
+show_missing = True
