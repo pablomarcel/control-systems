@@ -274,6 +274,106 @@ def lead_cmd(
     )
 
 
+# --- Parallel (series-equivalent locus) subcommand ----------------------------
+@cli.command(
+    "parallel",
+    help=(
+        "Parallel compensation via series-equivalent root locus (Ogata §6-9).\n"
+        "Build F(s) from blocks, from A+K·B split, or directly; "
+        "solve K at given s* or scan a ζ-ray; optional locus & step plots; "
+        "optional Plotly HTML exports for locus and step."
+    ),
+)
+# (i) blocks → Gf, then F = Gc_base * Gf
+@click.option("--g1-num")
+@click.option("--g1-den")
+@click.option("--g2-num")
+@click.option("--g2-den")
+@click.option("--h-num")
+@click.option("--h-den")
+@click.option("--gcb-num", default="1")
+@click.option("--gcb-den", default="1")
+# (ii) characteristic split (and step numerator for CL TF)
+@click.option("--A-num", "a_num")
+@click.option("--B-num", "b_num")
+@click.option("--step-num")
+# (iii) direct F
+@click.option("--F-num", "f_num")
+@click.option("--F-den", "f_den")
+# specs (choose one of: zeta+wn, sreal+wimag, or zeta-only for scan)
+@click.option("--zeta", type=float, default=None)
+@click.option("--wn", type=float, default=None)
+@click.option("--sreal", type=float, default=None)
+@click.option("--wimag", type=float, default=None)
+# plotting/report knobs
+@click.option("--plot", multiple=True, type=click.Choice(["locus", "step"]))
+@click.option("--k-range", default=None, help="K sweep for locus 'kmin,kmax' (optional)")
+@click.option("--k-pts", type=int, default=600)
+@click.option("--locus-clip", type=float, default=0.01)
+@click.option("--plotly-locus", default=None)
+@click.option("--plotly-step", default=None)
+# ζ-scan tuning
+@click.option("--wn-range", default=None, help="Override ωn scan range 'lo,hi' (optional)")
+@click.option("--grid", type=int, default=2400, help="ωn grid for ζ-scan (default 2400)")
+# visual options (matplotlib)
+@click.option("--no-ogata-grid", is_flag=True, help="Disable square, unit-grid axes")
+@click.option("--no-real-axis-hint", is_flag=True, help="Disable real-axis eligibility shading")
+@click.option("--legend", default="outside")
+@click.option("--xlim", nargs=2, help="Override x-limits: pass 'LO HI'.")
+@click.option("--ylim", nargs=2, help="Override y-limits: pass 'LO HI'.")
+@click.option("--pad", type=float, default=1.0)
+@click.option("--mpl-grid", type=click.Choice(["on", "off"]), default="on")
+# visual options (plotly)
+@click.option("--plotly-grid", type=click.Choice(["on", "off"]), default="on")
+@click.option("--plotly-cross-axes", is_flag=True)
+# reporting
+@click.option("--scale", type=float, default=1.0)
+@click.option("-v", "--verbose", count=True)
+def parallel_cmd(
+    g1_num, g1_den, g2_num, g2_den, h_num, h_den, gcb_num, gcb_den,
+    a_num, b_num, step_num,
+    f_num, f_den,
+    zeta, wn, sreal, wimag,
+    plot, k_range, k_pts, locus_clip, plotly_locus, plotly_step,
+    wn_range, grid,
+    no_ogata_grid, no_real_axis_hint, legend, xlim, ylim, pad, mpl_grid,
+    plotly_grid, plotly_cross_axes,
+    scale, verbose,
+):
+    """Parallel compensation (series-equivalent) front-end."""
+    from .parallel import ParallelCompensatorApp
+    from .utils import LOG
+    import logging
+
+    if verbose >= 2:
+        LOG.setLevel(logging.DEBUG)
+    elif verbose == 1:
+        LOG.setLevel(logging.INFO)
+    else:
+        LOG.setLevel(logging.INFO)
+
+    print("== Parallel Compensation via Series-Equivalent ==")
+    App = ParallelCompensatorApp()
+    App.run(
+        g1_num=g1_num, g1_den=g1_den, g2_num=g2_num, g2_den=g2_den,
+        h_num=h_num, h_den=h_den, gcb_num=gcb_num, gcb_den=gcb_den,
+        A_num=a_num, B_num=b_num, step_num=step_num,
+        F_num=f_num, F_den=f_den,
+        zeta=zeta, wn=wn, sreal=sreal, wimag=wimag,
+        plot=tuple(plot) if plot else tuple(),
+        k_range=k_range, k_pts=k_pts, locus_clip=locus_clip,
+        plotly_locus=plotly_locus, plotly_step=plotly_step,
+        wn_range=wn_range, grid=grid,
+        no_ogata_grid=no_ogata_grid, no_real_axis_hint=no_real_axis_hint,
+        legend=legend,
+        xlim=list(xlim) if xlim else None,
+        ylim=list(ylim) if ylim else None,
+        pad=pad, mpl_grid=mpl_grid,
+        plotly_grid=plotly_grid, plotly_cross_axes=plotly_cross_axes,
+        scale=scale, verbose=verbose,
+    )
+
+
 def main() -> None:
     cli()
 
