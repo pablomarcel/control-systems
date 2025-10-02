@@ -1,0 +1,9 @@
+[run]
+branch = True
+source = frequencyResponse/plotTool
+
+[html]
+directory = frequencyResponse/plotTool/out/htmlcov
+
+[report]
+show_missing = True
