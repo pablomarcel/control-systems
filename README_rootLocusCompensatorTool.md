@@ -220,3 +220,72 @@ Silence Matplotlib warnings during plotting:
 ```bash
 export PYTHONWARNINGS=ignore
 ```
+
+---
+
+# Parallel compensator (series-equivalent locus) — Run Recipes
+
+> Parallel compensation via series-equivalent root locus (Ogata §6-9).  
+> CLI entry point: `python -m rootLocus.compensatorTool.cli parallel`
+
+### Help
+
+```bash
+python -m rootLocus.compensatorTool.cli parallel --help
+```
+
+### Notes
+
+- To request multiple plots, **repeat** the `--plot` flag (Click requires one value per flag):
+  - ✅ `--plot locus --plot step`
+  - ❌ `--plot locus step`  _(this will error)_
+- Axes overrides use the **pair form**: `--xlim -7 1 --ylim -14 14`.
+- HTML exports are written under `rootLocus/compensatorTool/out/`.
+- You can build \(F(s)\) three ways:
+  1) from **blocks** (`--g1-*`, `--g2-*`, `--h-*`, `--gcb-*`),  
+  2) from **characteristic split** \(A+K\cdot B\) (`--A-num`, `--B-num`) with optional `--step-num` for step overlays,  
+  3) **directly** (`--F-num`, `--F-den`).
+
+---
+
+## A) ζ-scan at ζ = 0.4 (find intersections), locus + steps, export Plotly locus & steps
+
+```bash
+python -m rootLocus.compensatorTool.cli parallel   --A-num "1,5,4,20" --B-num "1,0" --step-num "20"   --zeta 0.4 --scale 20   --plot locus --plot step --k-pts 800   --xlim -7 1 --ylim -14 14 --legend outside   --plotly-locus "rootLocus/compensatorTool/out/ogata_6_10_locus.html"   --plotly-step  "rootLocus/compensatorTool/out/ogata_6_10_steps.html"   --plotly-grid off --plotly-cross-axes
+```
+
+## B) Single design point P (s* = −1.0490 + j2.4065)
+
+```bash
+python -m rootLocus.compensatorTool.cli parallel   --A-num "1,5,4,20" --B-num "1,0" --step-num "20"   --sreal -1.0490 --wimag 2.4065 --scale 20   --plot locus --plot step --k-pts 800   --xlim -7 1 --ylim -14 14 --legend outside   --plotly-step "rootLocus/compensatorTool/out/ogata_6_10_P_steps.html"   --plotly-grid off
+```
+
+## C) Single design point Q (s* = −2.1589 + j4.9652)
+
+```bash
+python -m rootLocus.compensatorTool.cli parallel   --A-num "1,5,4,20" --B-num "1,0" --step-num "20"   --sreal -2.1589 --wimag 4.9652 --scale 20   --plot locus --plot step --k-pts 800   --xlim -7 1 --ylim -14 14 --legend outside   --plotly-step "rootLocus/compensatorTool/out/ogata_6_10_Q_steps.html"   --plotly-grid off
+```
+
+## D) ζ-scan via blocks (Gc_base = 1/[(s+1)(s+4)] → F = s/(s³+5s²+4s+20))
+
+```bash
+python -m rootLocus.compensatorTool.cli parallel   --g1-num "20" --g1-den "1,5,4"   --g2-num "1"  --g2-den "1"   --h-num  "1"  --h-den  "1,0"   --gcb-num "1" --gcb-den "1,5,4"   --zeta 0.4 --scale 20   --plot locus --plot step --k-pts 800   --xlim -7 1 --ylim -14 14 --legend outside   --plotly-locus "rootLocus/compensatorTool/out/ogata_6_10_from_blocks.html"   --plotly-step  "rootLocus/compensatorTool/out/ogata_6_10_from_blocks_steps.html"   --plotly-grid off --plotly-cross-axes
+```
+
+## E) ζ-scan with direct F(s) (and A,B for step overlay)
+
+```bash
+python -m rootLocus.compensatorTool.cli parallel   --F-num "1,0" --F-den "1,5,4,20"   --A-num "1,5,4,20" --B-num "1,0" --step-num "20"   --zeta 0.4 --scale 20   --plot locus --plot step --k-pts 800   --xlim -7 1 --ylim -14 14 --legend outside   --plotly-locus "rootLocus/compensatorTool/out/ogata_6_10_from_direct.html"   --plotly-step  "rootLocus/compensatorTool/out/ogata_6_10_from_direct_steps.html"   --plotly-grid off --plotly-cross-axes
+```
+
+## F) Single design point via ζ + ωₙ (instead of sreal/wimag)
+
+```bash
+python -m rootLocus.compensatorTool.cli parallel   --A-num "1,5,4,20" --B-num "1,0" --step-num "20"   --zeta 0.4 --wn 3.0 --scale 20   --plot locus --plot step   --xlim -7 1 --ylim -14 14 --legend outside
+```
+
+## G) Locus only, with a custom K sweep range
+
+```bash
+python -m rootLocus.compensatorTool.cli parallel   --F-num "1,0" --F-den "1,5,4,20"   --zeta 0.4   --plot locus --k-range "1e-3,1e3" --k-pts 600   --xlim -7 1 --ylim -14 14 --legend outside
+```
