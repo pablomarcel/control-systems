@@ -1,11 +1,19 @@
 from __future__ import annotations
 import logging, sys, os, math, warnings
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 import numpy as np
 
 _EPS = 1e-16
 
-def build_logger(name: str = "plotTool", level=logging.INFO) -> logging.Logger:
+# --------------------- logging ---------------------
+def _truthy_env(name: str) -> bool:
+    v = os.environ.get(name, "")
+    return str(v).strip().lower() in ("1", "true", "yes", "on")
+
+def build_logger(name: str = "plotTool", level: Union[int, None] = logging.INFO) -> logging.Logger:
+    """
+    Create/get a logger. If PLOTTOOL_DEBUG is truthy, force DEBUG.
+    """
     log = logging.getLogger(name)
     if not log.handlers:
         h = logging.StreamHandler(sys.stdout)
@@ -14,37 +22,96 @@ def build_logger(name: str = "plotTool", level=logging.INFO) -> logging.Logger:
     # Default to INFO if level is None
     if level is None:
         level = logging.INFO
+    # Env override for noisy debugging
+    if _truthy_env("PLOTTOOL_DEBUG"):
+        level = logging.DEBUG
     log.setLevel(level)
     return log
 
+# --------------------- small math helpers ---------------------
 def db(x: np.ndarray, eps: float = _EPS) -> np.ndarray:
     x = np.asarray(x, float)
     with np.errstate(divide="ignore", invalid="ignore"):
         y = 20.0 * np.log10(np.maximum(x, eps))
     return y
 
+# --------------------- parsing ---------------------
+def _strip_outer_quotes(s: str) -> str:
+    s = s.strip()
+    if len(s) >= 2 and ((s[0] == s[-1]) and s[0] in ('"', "'")):
+        return s[1:-1].strip()
+    return s
+
 def parse_list(s: str) -> np.ndarray:
-    return np.array([float(x) for x in s.replace(";", ",").split(",") if x.strip()], float)
+    s = _strip_outer_quotes(s.replace(";", ","))
+    return np.array([float(x.strip().strip('"\'')) for x in s.split(",") if x.strip()], float)
 
 def parse_roots(s: Optional[str]) -> List[complex]:
     if not s or not s.strip(): return []
     toks = [t for t in s.replace(";", ",").split(",") if t.strip()]
     out: List[complex] = []
     for t in toks:
-        tt = t.strip().lower().replace("i", "j")
+        tt = t.strip().lower().strip('"\'' ).replace("i", "j")
         if tt == "j": tt = "1j"
         out.append(complex(tt) if "j" in tt else float(tt))
     return out
 
 def parse_matrix(s: str) -> np.ndarray:
     rows = [r.strip() for r in s.split(";") if r.strip()]
-    return np.array([[float(x) for x in r.split(",") if x.strip()] for r in rows], float)
+    return np.array([[float(x.strip().strip('"\'')) for x in r.split(",") if x.strip()] for r in rows], float)
 
 def parse_csv_vals(s: Optional[str]) -> Optional[List[float]]:
-    if not s: return None
-    return [float(x.strip()) for x in s.replace(";", ",").split(",") if x.strip()]
+    """
+    Robust CSV -> floats:
+    - Accept None -> None
+    - Accept strings possibly wrapped in quotes
+    - Accept semicolons or commas
+    - Strip stray quote characters from tokens
+    """
+    if s is None:
+        return None
+    if isinstance(s, (list, tuple)):
+        # already numeric-ish
+        return [float(x) for x in s]  # type: ignore[arg-type]
+    s = _strip_outer_quotes(str(s)).replace(";", ",")
+    toks = [t for t in s.split(",") if t.strip()]
+    out: List[float] = []
+    for t in toks:
+        tt = t.strip().strip('"\'' )
+        if tt:
+            out.append(float(tt))
+    return out
 
-# --------------------- s‑polynomial / factors ---------------------
+def parse_range4(arg: Optional[Union[str, Sequence[float]]]):
+    """
+    Parse a 4-value range (phase_min, phase_max, mag_min_db, mag_max_db).
+    Accepts:
+      - None -> None
+      - string with 4+ values (commas/semicolons, optional quotes) -> 4-tuple(float)
+      - list/tuple with 4+ values -> 4-tuple(float)
+    Returns None if cannot parse.
+    """
+    if arg is None:
+        return None
+    if isinstance(arg, (list, tuple)):
+        if len(arg) < 4:
+            return None
+        try:
+            return (float(arg[0]), float(arg[1]), float(arg[2]), float(arg[3]))
+        except Exception:
+            return None
+    # string path
+    s = _strip_outer_quotes(str(arg)).replace(";", ",")
+    vals = [v.strip().strip('"\'' ) for v in s.split(",") if v.strip()]
+    if len(vals) < 4:
+        return None
+    try:
+        a, b, c, d = (float(vals[0]), float(vals[1]), float(vals[2]), float(vals[3]))
+        return (a, b, c, d)
+    except Exception:
+        return None
+
+# --------------------- s-polynomial / factors ---------------------
 def _poly_from_s_expr(expr: str) -> np.ndarray:
     e = expr.strip()
     if e.startswith("(") and e.endswith(")"): e = e[1:-1]
@@ -118,14 +185,3 @@ def parse_factors(spec: Optional[str], Kval: float = 1.0) -> np.ndarray:
         poly = np.polymul(poly, f)
     nz = np.nonzero(np.abs(poly) > 0)[0]
     return poly[nz[0]:] if nz.size else np.array([0.0])
-
-# --------------------- TF helpers ---------------------
-def parse_range4(arg: Optional[str]):
-    if not arg: return None
-    s = arg.replace(";", ",")
-    vals = [v for v in s.split(",") if v.strip()]
-    if len(vals) != 4: return None
-    try:
-        return (float(vals[0]), float(vals[1]), float(vals[2]), float(vals[3]))
-    except Exception:
-        return None
