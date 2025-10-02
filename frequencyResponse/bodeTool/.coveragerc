@@ -1,0 +1,9 @@
+[run]
+branch = True
+source = frequencyResponse/bodeTool
+
+[html]
+directory = frequencyResponse/bodeTool/out/htmlcov
+
+[report]
+show_missing = True
