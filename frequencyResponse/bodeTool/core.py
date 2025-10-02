@@ -1,6 +1,6 @@
 from __future__ import annotations
 from dataclasses import dataclass
-from typing import Tuple, List
+from typing import Tuple
 import math
 import numpy as np
 import control as ct
@@ -63,7 +63,11 @@ class FrequencyGrid:
 class Analyzer:
     def bode_data(self, sys: ct.TransferFunction, w: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         try:
-            mag, phase, ww = ct.freqresp(sys, w)
+            # Prefer modern API when available
+            try:
+                mag, phase, ww = ct.frequency_response(sys, w)
+            except Exception:
+                mag, phase, ww = ct.freqresp(sys, w)
             mag = np.asarray(mag).squeeze()
             phase = np.asarray(phase).squeeze()
             ww = np.asarray(ww).ravel()

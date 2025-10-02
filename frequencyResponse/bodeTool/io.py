@@ -1,6 +1,7 @@
 from __future__ import annotations
 from typing import List, Dict
 import numpy as np
+import re
 
 def parse_list(s: str) -> np.ndarray:
     return np.array([float(x) for x in s.replace(";", ",").split(",") if x.strip()], dtype=float)
@@ -19,11 +20,20 @@ def parse_roots(s: str | None) -> List[complex]:
     tokens = [t for t in s.replace(";", ",").split(",") if t.strip()]
     return [_maybe_complex(t) for t in tokens]
 
+_S_OVER_TAU = re.compile(r'(?<![A-Za-z0-9_])s\s*/\s*([0-9]+(?:\.[0-9]*)?|\.[0-9]+)')
+
+def _normalize_s_div(expr: str) -> str:
+    """Rewrite occurrences of 's/τ' as '(1/τ)*s' for simple polynomial parsing."""
+    def _repl(m):
+        tau = m.group(1)
+        return f"(1/{tau})*s"
+    return _S_OVER_TAU.sub(_repl, expr)
+
 def poly_from_s_expr(expr: str) -> np.ndarray:
     e = expr.strip()
     if e.startswith("(") and e.endswith(")"):
         e = e[1:-1].strip()
-    e = e.replace(" ", "")
+    e = _normalize_s_div(e.replace(" ", ""))
     if e.startswith("+"):
         e = e[1:]
     parts = e.replace("-", "+-").split("+")
@@ -45,7 +55,7 @@ def poly_from_s_expr(expr: str) -> np.ndarray:
         else:
             if coef_str.endswith("*"):
                 coef_str = coef_str[:-1]
-            coef = float(coef_str)
+            coef = float(eval(coef_str, {"__builtins__": {}}, {}))  # allow (1/τ)
         power = 1
         if rest:
             if rest[0] == "^":
@@ -61,6 +71,27 @@ def poly_from_s_expr(expr: str) -> np.ndarray:
     if 0 in coeff_by_pow:
         c[-1] = coeff_by_pow[0]
     return c
+
+def _tokenize_factors(spec: str) -> List[str]:
+    toks: List[str] = []
+    buf = []
+    depth = 0
+    for ch in spec:
+        if ch == '(':
+            depth += 1
+            buf.append(ch)
+        elif ch == ')':
+            depth = max(0, depth-1)
+            buf.append(ch)
+        elif (ch.isspace() or ch == '*') and depth == 0:
+            if buf:
+                toks.append(''.join(buf).strip())
+                buf = []
+        else:
+            buf.append(ch)
+    if buf:
+        toks.append(''.join(buf).strip())
+    return [t for t in toks if t]
 
 def _parse_factor_token(tok: str, Kval: float) -> np.ndarray:
     t = tok.strip()
@@ -80,8 +111,7 @@ def _parse_factor_token(tok: str, Kval: float) -> np.ndarray:
 def parse_factors(spec: str | None, Kval: float = 1.0) -> np.ndarray:
     if not spec or not spec.strip():
         return np.array([1.0])
-    tmp = spec.replace("*", " ")
-    tokens = [t for t in tmp.split() if t.strip()]
+    tokens = _tokenize_factors(spec)
     poly = np.array([1.0])
     for tok in tokens:
         f = _parse_factor_token(tok, Kval)

@@ -1,6 +1,5 @@
 from __future__ import annotations
 import logging, sys
-from typing import Tuple
 import numpy as np
 
 def build_logger(level=logging.INFO) -> logging.Logger:
@@ -13,7 +12,7 @@ def build_logger(level=logging.INFO) -> logging.Logger:
         log.addHandler(h)
     return log
 
-def tf_arrays(G) -> tuple[np.ndarray, np.ndarray]:
+def tf_arrays(G):
     import control as ct
     try:
         num, den = ct.tfdata(G, squeeze=True)

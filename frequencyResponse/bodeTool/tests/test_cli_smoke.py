@@ -3,7 +3,6 @@ from pathlib import Path
 import sys, subprocess
 
 def run_cmd(args: list[str]) -> tuple[int, str]:
-    # project root assumed to be .../modernControl
     repo_root = Path(__file__).resolve().parents[3]
     p = subprocess.Popen(
         [sys.executable, "-m", "frequencyResponse.bodeTool.cli", *args],
