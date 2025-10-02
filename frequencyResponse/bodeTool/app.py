@@ -1,6 +1,5 @@
 from __future__ import annotations
-from dataclasses import dataclass
-from typing import List, Dict, Any, Tuple
+from typing import List
 import os, json
 import numpy as np
 import control as ct
@@ -8,7 +7,7 @@ import control as ct
 from .utils import build_logger, tf_arrays, pretty_tf
 from .core import TFBuilder, FrequencyGrid, Analyzer
 from .design import BodePlotter, ClassicalPlotters
-from .apis import BodeConfig, Margins, ClosedLoopFR, AnalysisResult
+from .apis import BodeConfig, AnalysisResult
 
 IN_DIR = os.path.join(os.path.dirname(__file__), "in")
 OUT_DIR = os.path.join(os.path.dirname(__file__), "out")
@@ -17,13 +16,10 @@ class BodeApp:
     def __init__(self, *, level="INFO"):
         self.log = build_logger(level=level)
 
-    # Orchestrated run returning data for tests
     def run(self, cfg: BodeConfig) -> AnalysisResult:
         tfb = TFBuilder()
-        # Build G
         G = tfb.build_from_modes(cfg.num, cfg.den, cfg.gain, cfg.zeros, cfg.poles,
                                  cfg.fnum, cfg.fden, cfg.K)
-        # Build H
         h_mode_count = sum([
             1 if (cfg.hnum or cfg.hden) else 0,
             1 if ((cfg.hgain is not None) or (cfg.hzeros is not None) or (cfg.hpoles is not None)) else 0,
@@ -62,9 +58,7 @@ class BodeApp:
 
         return AnalysisResult(pretty_tf=pretty_tf(L), margins=margins, closedloop=cl, P=P, hints=hints)
 
-    # Rendering side-effects (plots + JSON). Kept outside run() for testability.
     def render(self, cfg: BodeConfig, result: AnalysisResult, L=None, w=None):
-        # Build L and w again only if needed (for plotting). This avoids polluting run().
         if cfg.bode or cfg.nyquist or cfg.nichols or cfg.step or cfg.save_json:
             tfb = TFBuilder()
             import control as ct, numpy as np
@@ -108,6 +102,17 @@ class BodeApp:
         if cfg.nichols:
             ClassicalPlotters().nichols_matplotlib(L, w, _png("nichols"))
         if cfg.step:
+            import matplotlib
+            import platform
+            _backend = (matplotlib.get_backend() or "").lower()
+            if _backend in {"agg","pdf","svg","template","cairo"}:
+                try:
+                    if platform.system() == "Darwin":
+                        matplotlib.use("MacOSX", force=True)
+                    else:
+                        matplotlib.use("TkAgg", force=True)
+                except Exception:
+                    pass
             import matplotlib.pyplot as plt
             T = ct.minreal(ct.feedback(L, 1), verbose=False)
             t, y = ct.step_response(T)
@@ -117,6 +122,7 @@ class BodeApp:
             ax.set_title("Closed-loop step response")
             pth = _png("step")
             if pth: fig.savefig(pth, dpi=150)
+            plt.show()
 
         if cfg.save_json:
             payload = dict(

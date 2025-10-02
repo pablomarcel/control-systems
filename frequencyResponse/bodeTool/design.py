@@ -9,6 +9,17 @@ class BodePlotter:
         self.analyzer = analyzer or Analyzer()
 
     def matplotlib(self, L, w, margins: Margins, title: str, save_png: str | None):
+        import matplotlib
+        import platform
+        _backend = (matplotlib.get_backend() or "").lower()
+        if _backend in {"agg","pdf","svg","template","cairo"}:
+            try:
+                if platform.system() == "Darwin":
+                    matplotlib.use("MacOSX", force=True)
+                else:
+                    matplotlib.use("TkAgg", force=True)
+            except Exception:
+                pass
         import matplotlib.pyplot as plt
         mag, phase, ww = self.analyzer.bode_data(L, w)
         phase_deg = np.degrees(np.unwrap(phase))
@@ -32,6 +43,7 @@ class BodePlotter:
         fig.tight_layout()
         if save_png:
             fig.savefig(save_png, dpi=150)
+        plt.show()
         return fig
 
     def plotly(self, L, w, margins: Margins, title: str, save_html: str | None):
@@ -62,10 +74,22 @@ class BodePlotter:
         )
         if save_html:
             fig.write_html(save_html)
+        fig.show()
         return fig
 
 class ClassicalPlotters:
     def nyquist_matplotlib(self, L, w, save_png: str | None):
+        import matplotlib
+        import platform
+        _backend = (matplotlib.get_backend() or "").lower()
+        if _backend in {"agg","pdf","svg","template","cairo"}:
+            try:
+                if platform.system() == "Darwin":
+                    matplotlib.use("MacOSX", force=True)
+                else:
+                    matplotlib.use("TkAgg", force=True)
+            except Exception:
+                pass
         import matplotlib.pyplot as plt
         import numpy as np
         from .utils import tf_arrays
@@ -81,9 +105,21 @@ class ClassicalPlotters:
         ax.set_title("Nyquist plot"); ax.grid(True, ls=":")
         if save_png:
             fig.savefig(save_png, dpi=150)
+        plt.show()
         return fig
 
     def nichols_matplotlib(self, L, w, save_png: str | None, analyzer: Analyzer | None = None):
+        import matplotlib
+        import platform
+        _backend = (matplotlib.get_backend() or "").lower()
+        if _backend in {"agg","pdf","svg","template","cairo"}:
+            try:
+                if platform.system() == "Darwin":
+                    matplotlib.use("MacOSX", force=True)
+                else:
+                    matplotlib.use("TkAgg", force=True)
+            except Exception:
+                pass
         import matplotlib.pyplot as plt
         import numpy as np
         analyzer = analyzer or Analyzer()
@@ -95,4 +131,5 @@ class ClassicalPlotters:
         ax.grid(True, ls=":"); ax.set_title("Nichols chart (basic)")
         if save_png:
             fig.savefig(save_png, dpi=150)
+        plt.show()
         return fig

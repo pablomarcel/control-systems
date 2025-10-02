@@ -1,10 +1,8 @@
 from __future__ import annotations
-import inspect, pkgutil, importlib, types
-from typing import List
+import inspect
 from .. import app, apis, core, design
 
 def emit_puml() -> str:
-    # Very light-weight PlantUML class diagram (no external deps)
     modules = [app, apis, core, design]
     classes = []
     for m in modules:
@@ -13,10 +11,8 @@ def emit_puml() -> str:
                 classes.append(obj)
 
     lines = ["@startuml bodeTool", "!pragma useIntermediatePackages false", ""]
-    # Classes
     for cls in classes:
         lines.append(f"class {cls.__module__}.{cls.__name__} {{}}")
-    # Relations (simple usage hints)
     lines += [
         "frequencyResponse.bodeTool.app.BodeApp --> frequencyResponse.bodeTool.core.TFBuilder",
         "frequencyResponse.bodeTool.app.BodeApp --> frequencyResponse.bodeTool.core.FrequencyGrid",
