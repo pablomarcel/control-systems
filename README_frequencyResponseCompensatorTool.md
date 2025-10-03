@@ -353,6 +353,198 @@ python -m frequencyResponse.compensatorTool.cli --mode lead \
 
 ---
 
+## Lag-only Runbook (`--mode lag`)
+
+## 0) Help
+
+```bash
+python -m frequencyResponse.compensatorTool.cli --mode lag --help
+```
+
+## 1) Minimal auto design (MPL, Bode only)
+
+```bash
+python -m frequencyResponse.compensatorTool.cli --mode lag \
+  --num 4 --den "1, 2, 0" \
+  --lag_pm_target 45 --lag_pm_add 8 \
+  --backend mpl --plots bode --no_show \
+  --save "frequencyResponse/compensatorTool/out/lag_min_{kind}.png"
+```
+
+## 2) Minimal auto design (Plotly HTML)
+
+```bash
+python -m frequencyResponse.compensatorTool.cli --mode lag \
+  --num 4 --den "1, 2, 0" \
+  --lag_pm_target 45 --lag_pm_add 8 \
+  --backend plotly --plots bode --no_show \
+  --save "frequencyResponse/compensatorTool/out/lag_min_{kind}.html"
+```
+
+## 3) Kv scaling + full plot set + JSON/CSV (MPL, headless)
+
+```bash
+python -m frequencyResponse.compensatorTool.cli --mode lag \
+  --num 4 --den "1, 2, 0" --Kv 20 \
+  --lag_pm_target 45 --lag_pm_add 8 \
+  --backend mpl --plots bode,nyquist,nichols,step,ramp --no_show \
+  --export_json "frequencyResponse/compensatorTool/out/lag_kv.json" \
+  --export_csv_prefix "frequencyResponse/compensatorTool/out/lag_kv" \
+  --save "frequencyResponse/compensatorTool/out/lag_kv_{kind}.png"
+```
+
+## 4) Lag auto design tuned like Ogata Ex 7-27 (use tighter zero spacing)
+
+```bash
+python -m frequencyResponse.compensatorTool.cli --mode lag \
+  --tf "1/(s*(s+1)*(0.5*s+1))" --Kv 5 \
+  --lag_pm_target 40 --lag_pm_add 12 --lag_w_ratio 5 \
+  --backend mpl --plots bode,nyquist,nichols,step,ramp --no_show \
+  --save "frequencyResponse/compensatorTool/out/lag_og727_{kind}.png"
+```
+
+## 5) Manual lag (β, T, optional Kc) — no auto design
+
+```bash
+python -m frequencyResponse.compensatorTool.cli --mode lag \
+  --tf "1/(s*(s+1)*(0.5*s+1))" --Kv 5 \
+  --lag_beta 10 --lag_T 10 --lag_Kc 0.5 \
+  --backend mpl --plots bode,nyquist,step --no_show \
+  --save "frequencyResponse/compensatorTool/out/lag_manual_{kind}.png"
+```
+
+## 6) TF via expressions + params (Plotly)
+
+```bash
+python -m frequencyResponse.compensatorTool.cli --mode lag \
+  --tf "K/(s*(s+1)*(T*s+1))" --params "K=1.0,T=0.5" \
+  --lag_pm_target 45 --lag_pm_add 8 \
+  --backend plotly --plots bode,nichols --no_show \
+  --save "frequencyResponse/compensatorTool/out/lag_expr_{kind}.html"
+```
+
+## 7) ZPK input (auto design)
+
+```bash
+python -m frequencyResponse.compensatorTool.cli --mode lag \
+  --z "" --p "0, -1, -2" --k 1 \
+  --lag_pm_target 45 --lag_pm_add 8 \
+  --backend mpl --plots bode,nyquist --no_show \
+  --save "frequencyResponse/compensatorTool/out/lag_zpk_{kind}.png"
+```
+
+## 8) State-space input (auto design, step focus)
+
+```bash
+python -m frequencyResponse.compensatorTool.cli --mode lag \
+  --A "0,1; -4,-2" --B "0; 4" --C "1,0" --D "0" \
+  --lag_pm_target 45 --lag_pm_add 8 \
+  --backend mpl --plots bode,step --no_show \
+  --save "frequencyResponse/compensatorTool/out/lag_ss_{kind}.png"
+```
+
+## 9) Nichols with default template grid (MPL)
+
+```bash
+python -m frequencyResponse.compensatorTool.cli --mode lag \
+  --num 4 --den "1, 2, 0" \
+  --lag_pm_target 45 --lag_pm_add 8 \
+  --backend mpl --plots nichols --nichols_templates --no_show \
+  --save "frequencyResponse/compensatorTool/out/lag_nichols_{kind}.png"
+```
+
+## 10) Nichols with explicit contours (MPL)
+
+```bash
+python -m frequencyResponse.compensatorTool.cli --mode lag \
+  --num 4 --den "1, 2, 0" \
+  --lag_pm_target 45 --lag_pm_add 8 \
+  --backend mpl --plots nichols --no_show \
+  --nichols_Mdb -12 -9 -6 -3 0 3 6 9 12 \
+  --nichols_Ndeg -30 -60 -90 -120 -150 -180 \
+  --save "frequencyResponse/compensatorTool/out/lag_nichols_custom_{kind}.png"
+```
+
+## 11) Nyquist with M-circles and ω marks (MPL)
+
+```bash
+python -m frequencyResponse.compensatorTool.cli --mode lag \
+  --num 4 --den "1, 2, 0" \
+  --lag_pm_target 45 --lag_pm_add 8 \
+  --backend mpl --plots nyquist --no_show \
+  --nyquist_M 1.2 1.05 0.9 \
+  --nyquist_marks 0.2 0.4 1 2 5 \
+  --save "frequencyResponse/compensatorTool/out/lag_nyq_{kind}.png"
+```
+
+## 12) Time-domain only (force-show unstable baseline if desired)
+
+```bash
+python -m frequencyResponse.compensatorTool.cli --mode lag \
+  --tf "1/(s*(s+1)*(0.5*s+1))" --Kv 5 \
+  --lag_pm_target 40 --lag_pm_add 12 --lag_w_ratio 5 \
+  --backend mpl --plots step,ramp --no_show --show_unstable \
+  --save "frequencyResponse/compensatorTool/out/lag_time_{kind}.png"
+```
+
+## 13) Plotly full set + HTML/PNG + exports (headless)
+
+```bash
+python -m frequencyResponse.compensatorTool.cli --mode lag \
+  --num 4 --den "1, 2, 0" --Kv 20 \
+  --lag_pm_target 45 --lag_pm_add 8 \
+  --backend plotly --plots bode,nyquist,nichols --no_show \
+  --save "frequencyResponse/compensatorTool/out/lag_full_{kind}.html" \
+  --save_img "frequencyResponse/compensatorTool/out/lag_full_{kind}.png" \
+  --export_json "frequencyResponse/compensatorTool/out/lag_full.json" \
+  --export_csv_prefix "frequencyResponse/compensatorTool/out/lag_full"
+```
+
+## 14) Custom frequency grid (dense sweep)
+
+```bash
+python -m frequencyResponse.compensatorTool.cli --mode lag \
+  --num 4 --den "1, 2, 0" \
+  --lag_pm_target 45 --lag_pm_add 8 \
+  --backend mpl --plots bode --no_show \
+  --wmin 1e-1 --wmax 1e4 --wnum 5000 \
+  --save "frequencyResponse/compensatorTool/out/lag_grid_{kind}.png"
+```
+
+## 15) Headless batch render (CI-friendly, Nichols + Nyquist overlays)
+
+```bash
+python -m frequencyResponse.compensatorTool.cli --mode lag \
+  --num 4 --den "1, 2, 0" \
+  --lag_pm_target 45 --lag_pm_add 8 \
+  --backend plotly --plots bode,nyquist,nichols --no_show \
+  --nichols_templates --nyquist_M 1.2 \
+  --save "frequencyResponse/compensatorTool/out/lag_batch_{kind}.html"
+```
+
+## 16) Ogata-style axes on time plots (compare shapes)
+
+```bash
+python -m frequencyResponse.compensatorTool.cli --mode lag \
+  --tf "1/(s*(s+1)*(0.5*s+1))" --Kv 5 \
+  --lag_pm_target 40 --lag_pm_add 12 --lag_w_ratio 5 \
+  --backend mpl --plots step,ramp --no_show \
+  --ogata_axes \
+  --save "frequencyResponse/compensatorTool/out/lag_og_axes_{kind}.png"
+```
+
+## 17) Nichols + closed-loop performance annotations (Plotly)
+
+```bash
+python -m frequencyResponse.compensatorTool.cli --mode lag \
+  --tf "1/(s*(s+1)*(0.5*s+1))" --Kv 5 \
+  --lag_pm_target 40 --lag_pm_add 12 --lag_w_ratio 5 \
+  --backend plotly --plots nichols --no_show --nichols_templates \
+  --save "frequencyResponse/compensatorTool/out/lag_nichols_cl_{kind}.html"
+```
+
+
+
 ### Notes
 - If you need to **read** config/plant files later, place them under `frequencyResponse/compensatorTool/in/` and point the corresponding flags to that path.
 - If running in a headless CI environment for Matplotlib, add `--no_show` and rely on saved files under `out/`.
