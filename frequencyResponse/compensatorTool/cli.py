@@ -22,6 +22,15 @@ except Exception:  # pragma: no cover (keeps lag-lead tests passing if lead API 
     LeadDesignOptions = None  # type: ignore
     _HAVE_LEAD_API = False
 
+# Lag-only API types are optional (present when lag.py + apis additions are installed)
+try:
+    from .apis import LagDesignSpec, LagDesignOptions  # type: ignore
+    _HAVE_LAG_API = True
+except Exception:  # pragma: no cover
+    LagDesignSpec = None  # type: ignore
+    LagDesignOptions = None  # type: ignore
+    _HAVE_LAG_API = False
+
 from .app import CompensatorApp
 from .utils import parse_list_floats
 
@@ -40,7 +49,7 @@ def build_parser() -> argparse.ArgumentParser:
     # Default stays 'laglead' so existing commands & tests remain unchanged.
     p.add_argument(
         "--mode",
-        choices=["laglead", "lead"],
+        choices=["laglead", "lead", "lag"],
         default="laglead",
         help="Choose design mode (default: laglead)",
     )
@@ -88,6 +97,16 @@ def build_parser() -> argparse.ArgumentParser:
     dlead.add_argument("--lead_alpha", type=float, help="Manual lead α (single-stage manual mode)")
     dlead.add_argument("--lead_T", type=float, help="Manual lead T (requires --lead_alpha)")
     dlead.add_argument("--lead_Kc", type=float, help="Manual Kc (optional)")
+
+    # --------------------------- Design (lag-only) ----------------------------
+    # These are ignored unless --mode lag is set.
+    dlag = p.add_argument_group("Design (lag-only)")
+    dlag.add_argument("--lag_pm_target", type=float, help="Target phase margin (deg) for lag-only")
+    dlag.add_argument("--lag_pm_add", type=float, default=8.0, help="Extra φ (deg) to offset lag’s phase effect (default 8)")
+    dlag.add_argument("--lag_w_ratio", type=float, default=10.0, help="ωc/ωz placement factor (default 10)")
+    dlag.add_argument("--lag_beta", type=float, help="Manual lag β (>1)")
+    dlag.add_argument("--lag_T", type=float, help="Manual lag T (ωz=1/T)")
+    dlag.add_argument("--lag_Kc", type=float, help="Manual Kc (optional)")
 
     # --------------------------- Frequency grid ------------------------------
     f = p.add_argument_group("Frequency grid")
@@ -196,6 +215,30 @@ def main(argv: list[str] | None = None) -> int:
         # Call the lead-only engine directly to avoid touching CompensatorApp/tests
         from .lead import LeadDesigner  # lazy import to keep deps light for laglead tests
         result = LeadDesigner().run(spec)  # type: ignore
+
+    elif args.mode == "lag":
+        if not _HAVE_LAG_API:
+            # Explicit message if lag API not yet wired.
+            raise RuntimeError(
+                "Lag mode requested but Lag API types are not available. "
+                "Make sure apis.py defines LagDesignOptions and LagDesignSpec, "
+                "and lag.py is present."
+            )
+        # Build lag-only spec
+        lag_design = LagDesignOptions(  # type: ignore
+            Kv=args.Kv,
+            pm_target=args.lag_pm_target,
+            pm_add=args.lag_pm_add,
+            w_ratio_z=args.lag_w_ratio,
+            beta=args.lag_beta,
+            T=args.lag_T,
+            Kc=args.lag_Kc,
+        )
+        spec = LagDesignSpec(plant=plant, design=lag_design, plot=plot, grid=grid)  # type: ignore
+
+        # Call the lag-only engine directly to avoid touching CompensatorApp/tests
+        from .lag import LagDesigner  # lazy import
+        result = LagDesigner().run(spec)  # type: ignore
 
     else:
         # Default lag–lead path (unchanged)

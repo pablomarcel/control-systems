@@ -159,3 +159,44 @@ class LeadDesignResult:
     """
     pack: Dict[str, Any]
     files: List[str]
+
+
+# ------------------------------- Lag-only -------------------------------------
+# Mirrors the options used by lag.py (manual β/T/Kc or PM-based automatic design).
+@dataclass(slots=True)
+class LagDesignOptions:
+    """
+    Options for the lag-only designer.
+
+    Either provide (beta & T) for a manual single-stage, or set pm_target for
+    automatic design using the phase method. Kv can optionally auto-scale plant
+    gain (type-1 only) before the lag design.
+    """
+    Kv: Optional[float] = None
+    pm_target: Optional[float] = None
+    pm_add: float = 8.0
+    w_ratio_z: float = 10.0
+    beta: Optional[float] = None     # manual single-stage (β > 1)
+    T: Optional[float] = None        # manual single-stage (wz = 1/T)
+    Kc: Optional[float] = None       # optional manual gain (default 1.0 in engine)
+
+
+@dataclass(slots=True)
+class LagDesignSpec:
+    """Complete specification for a lag-only design and visualization run."""
+    plant: PlantSpec
+    design: LagDesignOptions
+    plot: PlotOptions = field(default_factory=PlotOptions)
+    grid: FrequencyGrid = field(default_factory=FrequencyGrid)
+
+
+@dataclass(slots=True)
+class LagDesignResult:
+    """
+    Output of a lag-only design and visualization run.
+
+    pack:  JSON-serializable dictionary with margins, design parameters, etc.
+    files: paths to any artifacts written to disk (plots, JSON, CSV).
+    """
+    pack: Dict[str, Any]
+    files: List[str]
