@@ -12,18 +12,37 @@ from .apis import (
     FrequencyGrid,
     LagLeadDesignSpec,
 )
+
+# Lead-only API types are optional (present when lead.py + apis additions are installed)
+try:
+    from .apis import LeadDesignSpec, LeadDesignOptions  # type: ignore
+    _HAVE_LEAD_API = True
+except Exception:  # pragma: no cover (keeps lag-lead tests passing if lead API not yet present)
+    LeadDesignSpec = None  # type: ignore
+    LeadDesignOptions = None  # type: ignore
+    _HAVE_LEAD_API = False
+
 from .app import CompensatorApp
 from .utils import parse_list_floats
 
 
 def build_parser() -> argparse.ArgumentParser:
-    # ASCII-only description for test compatibility
+    # ASCII-only description for test compatibility (tests grep this exact phrase)
     p = argparse.ArgumentParser(
         formatter_class=argparse.RawTextHelpFormatter,
         description=(
             "Lag-Lead compensator - design & analysis (Ogata section 7-13)\n"
             "modernControl.frequencyResponse.compensatorTool"
         ),
+    )
+
+    # --------------------------- Top-level mode -------------------------------
+    # Default stays 'laglead' so existing commands & tests remain unchanged.
+    p.add_argument(
+        "--mode",
+        choices=["laglead", "lead"],
+        default="laglead",
+        help="Choose design mode (default: laglead)",
     )
 
     # --------------------------- Plant input ---------------------------------
@@ -40,8 +59,8 @@ def build_parser() -> argparse.ArgumentParser:
     g.add_argument("--D", type=str, help='Feedthrough D, rows with ";", entries with ","')
     g.add_argument("--params", type=str, default="", help="Param dict like K=4,T=0.2")
 
-    # --------------------------- Design options ------------------------------
-    d = p.add_argument_group("Design")
+    # --------------------------- Design (laglead) -----------------------------
+    d = p.add_argument_group("Design (laglead)")
     d.add_argument("--Kv", type=float, help="Set gain to meet velocity constant (type-1 only)")
     d.add_argument("--pm_target", type=float, help="Target phase margin (deg)")
     d.add_argument("--pm_allow", type=float, default=5.0, help="Extra phase cushion (deg)")
@@ -59,6 +78,17 @@ def build_parser() -> argparse.ArgumentParser:
 
     d.add_argument("--ogata_7_28", action="store_true", help="Ogata Example 7-28 preset.")
 
+    # --------------------------- Design (lead-only) ---------------------------
+    # These are ignored unless --mode lead is set.
+    dlead = p.add_argument_group("Design (lead-only)")
+    dlead.add_argument("--lead_pm_target", type=float, help="Target phase margin (deg) for lead-only")
+    dlead.add_argument("--lead_pm_add", type=float, default=5.0, help="Extra φ (deg) to offset crossover shift (default 5)")
+    dlead.add_argument("--lead_stages", type=int, default=1, help="Number of cascaded lead sections (>=1)")
+    dlead.add_argument("--lead_phi_split", type=str, help="Asymmetric per-stage φ percentages, e.g., '60,40'")
+    dlead.add_argument("--lead_alpha", type=float, help="Manual lead α (single-stage manual mode)")
+    dlead.add_argument("--lead_T", type=float, help="Manual lead T (requires --lead_alpha)")
+    dlead.add_argument("--lead_Kc", type=float, help="Manual Kc (optional)")
+
     # --------------------------- Frequency grid ------------------------------
     f = p.add_argument_group("Frequency grid")
     f.add_argument("--wmin", type=float, default=1e-3)
@@ -73,9 +103,6 @@ def build_parser() -> argparse.ArgumentParser:
     v.add_argument("--ogata_axes", action="store_true")
 
     # Flexible list arguments: accept 0+ tokens, each token can itself contain commas.
-    # Examples:
-    #   --nyquist_M 1.2 1.05 0.9
-    #   --nyquist_M "1.2, 1.05, 0.9"
     v.add_argument("--nyquist_M", nargs="*", metavar="M")
     v.add_argument("--nyquist_marks", nargs="*", metavar="w")
 
@@ -103,7 +130,7 @@ def main(argv: list[str] | None = None) -> int:
         format="INFO: %(message)s" if not args.verbose else "%(levelname)s: %(message)s",
     )
 
-    # --------------------------- Build API specs -----------------------------
+    # --------------------------- Build common API specs -----------------------
     plant = PlantSpec(
         tf_expr=args.tf,
         num=args.num,
@@ -116,23 +143,6 @@ def main(argv: list[str] | None = None) -> int:
         C=args.C,
         D=args.D,
         params=args.params or "",
-    )
-
-    design = DesignOptions(
-        Kv=args.Kv,
-        pm_target=args.pm_target,
-        pm_allow=args.pm_allow,
-        wc_hint=args.wc_hint,
-        r_lead=args.r_lead,
-        r_lag=args.r_lag,
-        alpha=args.alpha,
-        beta=args.beta,
-        wz_lead=args.wz_lead,
-        wp_lead=args.wp_lead,
-        wz_lag=args.wz_lag,
-        wp_lag=args.wp_lag,
-        Kc=args.Kc,
-        ogata_7_28=args.ogata_7_28,
     )
 
     # Parse flexible list inputs (space- or comma-separated, with/without quotes)
@@ -161,11 +171,53 @@ def main(argv: list[str] | None = None) -> int:
 
     grid = FrequencyGrid(wmin=args.wmin, wmax=args.wmax, wnum=args.wnum)
 
-    spec = LagLeadDesignSpec(plant=plant, design=design, plot=plot, grid=grid)
+    # --------------------------- Execute (mode switch) ------------------------
+    if args.mode == "lead":
+        if not _HAVE_LEAD_API:
+            # Keep behavior explicit if apis additions haven't landed yet.
+            raise RuntimeError(
+                "Lead mode requested but Lead API types are not available. "
+                "Make sure apis.py defines LeadDesignOptions and LeadDesignSpec, "
+                "and lead.py is present."
+            )
+        # Build lead-only spec
+        lead_design = LeadDesignOptions(  # type: ignore
+            Kv=args.Kv,
+            pm_target=args.lead_pm_target,
+            pm_add=args.lead_pm_add,
+            stages=args.lead_stages,
+            phi_split=(args.lead_phi_split or None),
+            alpha=args.lead_alpha,
+            T=args.lead_T,
+            Kc=args.lead_Kc,
+        )
+        spec = LeadDesignSpec(plant=plant, design=lead_design, plot=plot, grid=grid)  # type: ignore
 
-    # --------------------------- Execute -------------------------------------
-    app = CompensatorApp()
-    result = app.run(spec)
+        # Call the lead-only engine directly to avoid touching CompensatorApp/tests
+        from .lead import LeadDesigner  # lazy import to keep deps light for laglead tests
+        result = LeadDesigner().run(spec)  # type: ignore
+
+    else:
+        # Default lag–lead path (unchanged)
+        design = DesignOptions(
+            Kv=args.Kv,
+            pm_target=args.pm_target,
+            pm_allow=args.pm_allow,
+            wc_hint=args.wc_hint,
+            r_lead=args.r_lead,
+            r_lag=args.r_lag,
+            alpha=args.alpha,
+            beta=args.beta,
+            wz_lead=args.wz_lead,
+            wp_lead=args.wp_lead,
+            wz_lag=args.wz_lag,
+            wp_lag=args.wp_lag,
+            Kc=args.Kc,
+            ogata_7_28=args.ogata_7_28,
+        )
+        spec = LagLeadDesignSpec(plant=plant, design=design, plot=plot, grid=grid)
+        app = CompensatorApp()
+        result = app.run(spec)
 
     # --------------------------- Print summary -------------------------------
     import json as _json
