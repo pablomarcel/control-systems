@@ -1,7 +1,10 @@
 # frequencyResponse / compensatorTool — Runbook
 
 This markdown collects **ready-to-run CLI invocations** for the OOP tool:
-`python -m frequencyResponse.compensatorTool.cli`
+
+```
+python -m frequencyResponse.compensatorTool.cli
+```
 
 - **Artifacts** are written to: `frequencyResponse/compensatorTool/out/`
 - If you later add **input files**, put them under: `frequencyResponse/compensatorTool/in/` and point flags there.
@@ -9,11 +12,18 @@ This markdown collects **ready-to-run CLI invocations** for the OOP tool:
 - **Matplotlib** windows pop unless you pass `--no_show`. All MPL examples here also **save** to disk.
 - Static PNG export for Plotly requires **kaleido** (you have it).
 
-> Tip (VS Code / Preview tools): many Markdown extensions let you run shell blocks inline. Otherwise, copy a block and paste into your terminal.
+> **Modes**
+>
+> - Default mode is **laglead** (backward compatible with existing commands).
+> - Lead-only runs use the same entrypoint with `--mode lead`.
+> - Pattern stays consistent as you scale:  
+>   `python -m frequencyResponse.compensatorTool.cli --mode <laglead|lead> <flags...>`
 
 ---
 
-## 1) Nichols (Plotly) with custom M = 0.9 dB contour
+## Lag–Lead (default) Runbook
+
+### 1) Nichols (Plotly) with custom M = 0.9 dB contour
 ```bash
 python -m frequencyResponse.compensatorTool.cli --ogata_7_28 \
   --backend plotly --plots nichols --nichols_templates \
@@ -22,7 +32,7 @@ python -m frequencyResponse.compensatorTool.cli --ogata_7_28 \
   --save "frequencyResponse/compensatorTool/out/og728_{kind}.html"
 ```
 
-## 2) Nichols (Matplotlib) with the same custom contours
+### 2) Nichols (Matplotlib) with the same custom contours
 ```bash
 python -m frequencyResponse.compensatorTool.cli --ogata_7_28 \
   --backend mpl --plots nichols --nichols_templates \
@@ -31,7 +41,7 @@ python -m frequencyResponse.compensatorTool.cli --ogata_7_28 \
   --save "frequencyResponse/compensatorTool/out/og728_{kind}.png"
 ```
 
-## 3) Nyquist (Plotly) with multiple M-circles + ω marks
+### 3) Nyquist (Plotly) with multiple M-circles + ω marks
 ```bash
 python -m frequencyResponse.compensatorTool.cli --ogata_7_28 \
   --backend plotly --plots nyquist --ogata_axes \
@@ -40,7 +50,7 @@ python -m frequencyResponse.compensatorTool.cli --ogata_7_28 \
   --save "frequencyResponse/compensatorTool/out/og728_{kind}.html"
 ```
 
-## 4) Nyquist (Matplotlib) with multiple M-circles + ω marks
+### 4) Nyquist (Matplotlib) with multiple M-circles + ω marks
 ```bash
 python -m frequencyResponse.compensatorTool.cli --ogata_7_28 \
   --backend mpl --plots nyquist --ogata_axes \
@@ -49,7 +59,7 @@ python -m frequencyResponse.compensatorTool.cli --ogata_7_28 \
   --save "frequencyResponse/compensatorTool/out/og728_{kind}.png"
 ```
 
-## 5) Bode + Nyquist + Nichols (Plotly), custom grids, saved HTML
+### 5) Bode + Nyquist + Nichols (Plotly), custom grids, saved HTML
 ```bash
 python -m frequencyResponse.compensatorTool.cli --ogata_7_28 \
   --backend plotly --ogata_axes \
@@ -61,7 +71,7 @@ python -m frequencyResponse.compensatorTool.cli --ogata_7_28 \
   --save "frequencyResponse/compensatorTool/out/og728_{kind}.html"
 ```
 
-## 6) Default multi-plot (Matplotlib)
+### 6) Default multi-plot (Matplotlib)
 ```bash
 python -m frequencyResponse.compensatorTool.cli --ogata_7_28 \
   --backend mpl \
@@ -70,7 +80,7 @@ python -m frequencyResponse.compensatorTool.cli --ogata_7_28 \
   --save "frequencyResponse/compensatorTool/out/og728_{kind}.png"
 ```
 
-## 7) Default multi-plot (Plotly) + HTML export
+### 7) Default multi-plot (Plotly) + HTML export
 ```bash
 python -m frequencyResponse.compensatorTool.cli --ogata_7_28 \
   --backend plotly \
@@ -79,7 +89,7 @@ python -m frequencyResponse.compensatorTool.cli --ogata_7_28 \
   --save "frequencyResponse/compensatorTool/out/og728_{kind}.html"
 ```
 
-## 8) Plotly + static PNGs (needs kaleido installed)
+### 8) Plotly + static PNGs (needs kaleido installed)
 ```bash
 python -m frequencyResponse.compensatorTool.cli --ogata_7_28 \
   --backend plotly --plots nyquist,nichols \
@@ -91,7 +101,7 @@ python -m frequencyResponse.compensatorTool.cli --ogata_7_28 \
   --no_show
 ```
 
-## 9) Nichols (Plotly) – minimal extra contours (just Mdb=0.9)
+### 9) Nichols (Plotly) – minimal extra contours (just Mdb=0.9)
 ```bash
 python -m frequencyResponse.compensatorTool.cli --ogata_7_28 \
   --backend plotly --plots nichols --nichols_templates \
@@ -100,7 +110,7 @@ python -m frequencyResponse.compensatorTool.cli --ogata_7_28 \
   --save "frequencyResponse/compensatorTool/out/og728_{kind}.html"
 ```
 
-## 10) Nyquist with only the Ogata M=1.2 circle (both backends)
+### 10) Nyquist with only the Ogata M=1.2 circle (both backends)
 ```bash
 python -m frequencyResponse.compensatorTool.cli --ogata_7_28 \
   --backend plotly --plots nyquist --ogata_axes \
@@ -109,14 +119,14 @@ python -m frequencyResponse.compensatorTool.cli --ogata_7_28 \
 ```
 > For Matplotlib, swap `--backend mpl` and save as PNG.
 
-## 11) Time-domain only (Step & Ramp), hide unstable baseline if any
+### 11) Time-domain only (Step & Ramp), hide unstable baseline if any
 ```bash
 python -m frequencyResponse.compensatorTool.cli --ogata_7_28 \
   --backend mpl --plots step,ramp --ogata_axes \
   --save "frequencyResponse/compensatorTool/out/og728_{kind}.png"
 ```
 
-## 12) Custom frequency grid
+### 12) Custom frequency grid
 ```bash
 python -m frequencyResponse.compensatorTool.cli --ogata_7_28 \
   --backend mpl --plots bode,nyquist,nichols \
@@ -128,7 +138,7 @@ python -m frequencyResponse.compensatorTool.cli --ogata_7_28 \
   --no_show
 ```
 
-## 13) CSV + JSON exports (good for reports/CI)
+### 13) CSV + JSON exports (good for reports/CI)
 ```bash
 python -m frequencyResponse.compensatorTool.cli --ogata_7_28 \
   --backend mpl --plots bode,nyquist,nichols \
@@ -140,7 +150,7 @@ python -m frequencyResponse.compensatorTool.cli --ogata_7_28 \
   --no_show
 ```
 
-## 14) From a custom plant (TF string) with auto design
+### 14) From a custom plant (TF string) with auto design
 ```bash
 python -m frequencyResponse.compensatorTool.cli \
   --tf "K/(s*(s+1)*(s+2))" --params "K=8" \
@@ -150,7 +160,7 @@ python -m frequencyResponse.compensatorTool.cli \
   --save "frequencyResponse/compensatorTool/out/custom_{kind}.html"
 ```
 
-## 15) From ZPK form
+### 15) From ZPK form
 ```bash
 python -m frequencyResponse.compensatorTool.cli \
   --z "" --p "0, -1, -2" --k "K" --params "K=20" \
@@ -158,7 +168,7 @@ python -m frequencyResponse.compensatorTool.cli \
   --save "frequencyResponse/compensatorTool/out/zpk_{kind}.png"
 ```
 
-## 16) From State-Space matrices
+### 16) From State-Space matrices
 ```bash
 python -m frequencyResponse.compensatorTool.cli \
   --A "0,1,0;0,0,1;0,-3,-2" \
@@ -169,7 +179,7 @@ python -m frequencyResponse.compensatorTool.cli \
   --save "frequencyResponse/compensatorTool/out/ss_{kind}.png"
 ```
 
-## 17) Force-show unstable baseline in time responses (for comparison)
+### 17) Force-show unstable baseline in time responses (for comparison)
 ```bash
 python -m frequencyResponse.compensatorTool.cli --ogata_7_28 \
   --backend mpl --plots step,ramp \
@@ -177,7 +187,7 @@ python -m frequencyResponse.compensatorTool.cli --ogata_7_28 \
   --save "frequencyResponse/compensatorTool/out/og728_{kind}.png"
 ```
 
-## 18) Headless batch render (CI-friendly)
+### 18) Headless batch render (CI-friendly)
 ```bash
 python -m frequencyResponse.compensatorTool.cli --ogata_7_28 \
   --backend plotly --plots bode,nyquist,nichols \
@@ -185,6 +195,160 @@ python -m frequencyResponse.compensatorTool.cli --ogata_7_28 \
   --nichols_templates --nyquist_M 1.2 \
   --save "frequencyResponse/compensatorTool/out/batch_{kind}.html" \
   --no_show
+```
+
+---
+
+## Lead-only Runbook (`--mode lead`)
+
+### 0) help
+```bash
+python -m frequencyResponse.compensatorTool.cli --mode lead --help
+```
+
+### 1) minimal auto design (MPL, Bode only, no windows; saves PNG)
+```bash
+python -m frequencyResponse.compensatorTool.cli --mode lead \
+  --num 4 --den "1, 2, 0" \
+  --lead_pm_target 50 --lead_pm_add 5 --lead_stages 1 \
+  --backend mpl --plots bode --no_show \
+  --save "frequencyResponse/compensatorTool/out/lead_min_{kind}.png"
+```
+
+### 2) minimal auto design (Plotly HTML)
+```bash
+python -m frequencyResponse.compensatorTool.cli --mode lead \
+  --num 4 --den "1, 2, 0" \
+  --lead_pm_target 50 --lead_pm_add 5 --lead_stages 1 \
+  --backend plotly --plots bode --no_show \
+  --save "frequencyResponse/compensatorTool/out/lead_min_{kind}.html"
+```
+
+### 3) Kv scaling + full plot set + JSON/CSV (MPL, headless)
+```bash
+python -m frequencyResponse.compensatorTool.cli --mode lead \
+  --num 4 --den "1, 2, 0" --Kv 20 \
+  --lead_pm_target 50 --lead_pm_add 5 --lead_stages 1 \
+  --backend mpl --plots bode,nyquist,nichols,step,ramp --no_show \
+  --export_json "frequencyResponse/compensatorTool/out/lead_kv.json" \
+  --export_csv_prefix "frequencyResponse/compensatorTool/out/lead_kv" \
+  --save "frequencyResponse/compensatorTool/out/lead_kv_{kind}.png"
+```
+
+### 4) two-stage auto design (MPL, Bode+Nichols)
+```bash
+python -m frequencyResponse.compensatorTool.cli --mode lead \
+  --num 4 --den "1, 2, 0" --Kv 20 \
+  --lead_pm_target 50 --lead_pm_add 5 --lead_stages 2 \
+  --backend mpl --plots bode,nichols --no_show \
+  --save "frequencyResponse/compensatorTool/out/lead_2stage_{kind}.png"
+```
+
+### 5) two-stage with asymmetric φ split (60/40)
+```bash
+python -m frequencyResponse.compensatorTool.cli --mode lead \
+  --num 4 --den "1, 2, 0" --Kv 20 \
+  --lead_pm_target 50 --lead_pm_add 5 --lead_stages 2 --lead_phi_split "60,40" \
+  --backend mpl --plots bode,nichols --no_show \
+  --save "frequencyResponse/compensatorTool/out/lead_split_{kind}.png"
+```
+
+### 6) manual single-stage lead (α, T, optional Kc) — no auto design
+```bash
+python -m frequencyResponse.compensatorTool.cli --mode lead \
+  --num 4 --den "1, 2, 0" \
+  --lead_alpha 0.25 --lead_T 0.15 --lead_Kc 3.2 \
+  --backend mpl --plots bode,nyquist,step --no_show \
+  --save "frequencyResponse/compensatorTool/out/lead_manual_{kind}.png"
+```
+
+### 7) TF via expressions + params (Plotly)
+```bash
+python -m frequencyResponse.compensatorTool.cli --mode lead \
+  --num K --den "(T1*T2), (T1+T2), 1" --params "K=8,T1=0.2,T2=0.5" \
+  --lead_pm_target 55 --lead_pm_add 5 --lead_stages 1 \
+  --backend plotly --plots bode,nichols --no_show \
+  --save "frequencyResponse/compensatorTool/out/lead_expr_{kind}.html"
+```
+
+### 8) ZPK input (auto design)
+```bash
+python -m frequencyResponse.compensatorTool.cli --mode lead \
+  --z "" --p "-1, -2" --k 5 \
+  --lead_pm_target 50 --lead_pm_add 5 --lead_stages 1 \
+  --backend mpl --plots bode,nyquist --no_show \
+  --save "frequencyResponse/compensatorTool/out/lead_zpk_{kind}.png"
+```
+
+### 9) state-space input (auto design, step focus)
+```bash
+python -m frequencyResponse.compensatorTool.cli --mode lead \
+  --A "0,1; -4,-2" --B "0; 4" --C "1,0" --D "0" \
+  --lead_pm_target 60 --lead_pm_add 5 --lead_stages 1 \
+  --backend mpl --plots bode,step --no_show \
+  --save "frequencyResponse/compensatorTool/out/lead_ss_{kind}.png"
+```
+
+### 10) Nichols with default template grid (MPL)
+```bash
+python -m frequencyResponse.compensatorTool.cli --mode lead \
+  --num 4 --den "1, 2, 0" \
+  --lead_pm_target 50 --lead_pm_add 5 --lead_stages 1 \
+  --backend mpl --plots nichols --nichols_templates --no_show \
+  --save "frequencyResponse/compensatorTool/out/lead_nichols_{kind}.png"
+```
+
+### 11) Nichols with explicit contours (MPL)
+```bash
+python -m frequencyResponse.compensatorTool.cli --mode lead \
+  --num 4 --den "1, 2, 0" \
+  --lead_pm_target 50 --lead_pm_add 5 --lead_stages 1 \
+  --backend mpl --plots nichols --no_show \
+  --nichols_Mdb -12 -9 -6 -3 0 3 6 9 12 \
+  --nichols_Ndeg -30 -60 -90 -120 -150 -180 \
+  --save "frequencyResponse/compensatorTool/out/lead_nichols_custom_{kind}.png"
+```
+
+### 12) Nyquist with M-circles and ω marks (MPL)
+```bash
+python -m frequencyResponse.compensatorTool.cli --mode lead \
+  --num 4 --den "1, 2, 0" \
+  --lead_pm_target 50 --lead_pm_add 5 --lead_stages 1 \
+  --backend mpl --plots nyquist --no_show \
+  --nyquist_M 1.2 1.05 0.9 \
+  --nyquist_marks 0.2 0.4 1 2 5 \
+  --save "frequencyResponse/compensatorTool/out/lead_nyq_{kind}.png"
+```
+
+### 13) time-domain only (force-show unstable baseline if you want it visible)
+```bash
+python -m frequencyResponse.compensatorTool.cli --mode lead \
+  --tf "1/(s*(s+1)*(s+2))" \
+  --lead_pm_target 40 --lead_pm_add 5 --lead_stages 1 \
+  --backend mpl --plots step,ramp --no_show --show_unstable \
+  --save "frequencyResponse/compensatorTool/out/lead_time_{kind}.png"
+```
+
+### 14) Plotly full set + HTML/PNG + exports (headless)
+```bash
+python -m frequencyResponse.compensatorTool.cli --mode lead \
+  --num 4 --den "1, 2, 0" --Kv 20 \
+  --lead_pm_target 50 --lead_pm_add 5 --lead_stages 1 \
+  --backend plotly --plots bode,nyquist,nichols --no_show \
+  --save "frequencyResponse/compensatorTool/out/lead_full_{kind}.html" \
+  --save_img "frequencyResponse/compensatorTool/out/lead_full_{kind}.png" \
+  --export_json "frequencyResponse/compensatorTool/out/lead_full.json" \
+  --export_csv_prefix "frequencyResponse/compensatorTool/out/lead_full"
+```
+
+### 15) custom frequency grid (dense sweep)
+```bash
+python -m frequencyResponse.compensatorTool.cli --mode lead \
+  --num 4 --den "1, 2, 0" \
+  --lead_pm_target 50 --lead_pm_add 5 --lead_stages 1 \
+  --backend mpl --plots bode --no_show \
+  --wmin 1e-1 --wmax 1e4 --wnum 5000 \
+  --save "frequencyResponse/compensatorTool/out/lead_grid_{kind}.png"
 ```
 
 ---

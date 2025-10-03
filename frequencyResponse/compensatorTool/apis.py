@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from typing import Optional, Dict, Any, List
 
 
+# ------------------------------- Plant ----------------------------------------
 @dataclass(slots=True)
 class PlantSpec:
     """
@@ -29,6 +30,7 @@ class PlantSpec:
     params: str = ""
 
 
+# ---------------------------- Lag–Lead (existing) -----------------------------
 @dataclass(slots=True)
 class DesignOptions:
     """
@@ -71,13 +73,13 @@ class PlotOptions:
     nichols_templates: bool = False
 
     # Optional numeric lists
-    nichols_Mdb: Optional[list[float]] = None
-    nichols_Ndeg: Optional[list[float]] = None
-    nyquist_M: Optional[list[float]] = None
-    nyquist_marks: Optional[list[float]] = None
+    nichols_Mdb: Optional[List[float]] = None
+    nichols_Ndeg: Optional[List[float]] = None
+    nyquist_M: Optional[List[float]] = None
+    nyquist_marks: Optional[List[float]] = None
 
     # File outputs
-    save: Optional[str] = None           # e.g., "frequencyResponse/compensatorTool/out/run_{kind}.html|png"
+    save: Optional[str] = None           # e.g., ".../out/run_{kind}.html|png"
     save_img: Optional[str] = None       # static images when using plotly+kaleido
     export_json: Optional[str] = None    # path to design pack JSON
     export_csv_prefix: Optional[str] = None  # prefix for CSV exports
@@ -85,14 +87,12 @@ class PlotOptions:
     # Runtime behavior
     no_show: bool = False
     verbose: bool = False
-    show_unstable: bool = False  # when True, force-show unstable baseline in time-domain plots
+    show_unstable: bool = False  # force-show unstable baseline in time-domain plots
 
 
 @dataclass(slots=True)
 class FrequencyGrid:
-    """
-    Frequency grid used for frequency response computations and plots.
-    """
+    """Frequency grid used for frequency response computations and plots."""
     wmin: float = 1e-3
     wmax: float = 1e3
     wnum: int = 2000
@@ -100,9 +100,7 @@ class FrequencyGrid:
 
 @dataclass(slots=True)
 class LagLeadDesignSpec:
-    """
-    Complete specification for a lag–lead design and visualization run.
-    """
+    """Complete specification for a lag–lead design and visualization run."""
     plant: PlantSpec
     design: DesignOptions
     plot: PlotOptions = field(default_factory=PlotOptions)
@@ -115,6 +113,48 @@ class LagLeadDesignResult:
     Output of a lag–lead design and visualization run.
 
     pack:  JSON-serializable dictionary with margins, design parameters, CL poles/zeros, etc.
+    files: paths to any artifacts written to disk (plots, JSON, CSV).
+    """
+    pack: Dict[str, Any]
+    files: List[str]
+
+
+# ------------------------------- Lead-only ------------------------------------
+# These mirror the fields used by lead.py (manual α/T/Kc or automatic PM-based multi-stage).
+@dataclass(slots=True)
+class LeadDesignOptions:
+    """
+    Options for the lead-only designer.
+
+    Either provide (alpha & T) for a manual single-stage, or set pm_target for
+    automatic one/multi-stage design. Kv can optionally auto-scale plant gain
+    (type-1 only) before the lead design.
+    """
+    Kv: Optional[float] = None
+    pm_target: Optional[float] = None
+    pm_add: float = 5.0
+    stages: int = 1
+    phi_split: Optional[str] = None  # e.g., "60,40" to split φ across 2 stages
+    alpha: Optional[float] = None    # manual single-stage
+    T: Optional[float] = None        # manual single-stage
+    Kc: Optional[float] = None       # optional manual gain when alpha/T given
+
+
+@dataclass(slots=True)
+class LeadDesignSpec:
+    """Complete specification for a lead-only design and visualization run."""
+    plant: PlantSpec
+    design: LeadDesignOptions
+    plot: PlotOptions = field(default_factory=PlotOptions)
+    grid: FrequencyGrid = field(default_factory=FrequencyGrid)
+
+
+@dataclass(slots=True)
+class LeadDesignResult:
+    """
+    Output of a lead-only design and visualization run.
+
+    pack:  JSON-serializable dictionary with margins, design parameters, etc.
     files: paths to any artifacts written to disk (plots, JSON, CSV).
     """
     pack: Dict[str, Any]
