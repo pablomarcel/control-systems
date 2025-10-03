@@ -1,0 +1,9 @@
+[run]
+branch = True
+source = pidControllers/zeroPoleTool
+
+[html]
+directory = pidControllers/zeroPoleTool/out/htmlcov
+
+[report]
+show_missing = True
