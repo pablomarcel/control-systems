@@ -1,0 +1,9 @@
+[run]
+branch = True
+source = pidControllers/pidTool
+
+[html]
+directory = pidControllers/pidTool/out/htmlcov
+
+[report]
+show_missing = True

@@ -1,0 +1,134 @@
+{
+  "metadata": {
+    "title": "Ziegler\u2013Nichols PID Tuning Tables (Ogata Ch. 8: Tables 8-1 & 8-2)",
+    "version": "1.0.0",
+    "created_utc": 1756692862,
+    "conventions": {
+      "pid_form": "ideal (a.k.a. non-interacting)",
+      "Gc(s)": "Kp * (1 + 1/(Ti*s) + Td*s)",
+      "gain_conversions": {
+        "Ki": "Kp/Ti",
+        "Kd": "Kp*Td"
+      }
+    },
+    "notes": [
+      "All time units must be consistent (e.g., seconds).",
+      "Symbols: L=apparent delay (dead time), T=time constant from step response; Kcr=ultimate (critical) gain; Pcr=ultimate period.",
+      "Use these as starting points; fine-tune for your performance specs."
+    ]
+  },
+  "variables": {
+    "L": {
+      "unit": "s",
+      "description": "Apparent dead time from S-shaped step response (First Method)."
+    },
+    "T": {
+      "unit": "s",
+      "description": "Apparent time constant from S-shaped step response (First Method)."
+    },
+    "Kcr": {
+      "unit": "",
+      "description": "Critical proportional gain at onset of sustained oscillations (Second Method)."
+    },
+    "Pcr": {
+      "unit": "s",
+      "description": "Oscillation period at Kcr (Second Method)."
+    }
+  },
+  "methods": {
+    "ZN_step": {
+      "name": "Ziegler\u2013Nichols First Method (reaction-curve / step-response)",
+      "inputs": [
+        "L",
+        "T"
+      ],
+      "plant_model_assumption": "Approximate plant as first-order plus dead time: (K * e^{-L s}) / (T s + 1)",
+      "controllers": {
+        "P": {
+          "formula": {
+            "Kp": "T/L",
+            "Ti": "inf",
+            "Td": "0"
+          },
+          "derived": {
+            "Ki": "0",
+            "Kd": "0"
+          }
+        },
+        "PI": {
+          "formula": {
+            "Kp": "0.9*T/L",
+            "Ti": "L/0.3",
+            "Td": "0"
+          },
+          "derived": {
+            "Ki": "Kp/Ti",
+            "Kd": "0"
+          }
+        },
+        "PID": {
+          "formula": {
+            "Kp": "1.2*T/L",
+            "Ti": "2*L",
+            "Td": "0.5*L"
+          },
+          "derived": {
+            "Ki": "Kp/Ti",
+            "Kd": "Kp*Td"
+          },
+          "implied_zero_info": {
+            "location": "-1/L",
+            "multiplicity": 2
+          }
+        }
+      }
+    },
+    "ZN_ultimate": {
+      "name": "Ziegler\u2013Nichols Second Method (ultimate gain / sustained oscillation)",
+      "inputs": [
+        "Kcr",
+        "Pcr"
+      ],
+      "procedure_note": "Set Ti = inf and Td = 0 (P-only), raise Kp until sustained oscillations; record Kcr and Pcr.",
+      "controllers": {
+        "P": {
+          "formula": {
+            "Kp": "0.5*Kcr",
+            "Ti": "inf",
+            "Td": "0"
+          },
+          "derived": {
+            "Ki": "0",
+            "Kd": "0"
+          }
+        },
+        "PI": {
+          "formula": {
+            "Kp": "0.45*Kcr",
+            "Ti": "Pcr/1.2",
+            "Td": "0"
+          },
+          "derived": {
+            "Ki": "Kp/Ti",
+            "Kd": "0"
+          }
+        },
+        "PID": {
+          "formula": {
+            "Kp": "0.6*Kcr",
+            "Ti": "0.5*Pcr",
+            "Td": "0.125*Pcr"
+          },
+          "derived": {
+            "Ki": "Kp/Ti",
+            "Kd": "Kp*Td"
+          },
+          "implied_zero_info": {
+            "location": "-4/Pcr",
+            "multiplicity": 2
+          }
+        }
+      }
+    }
+  }
+}
