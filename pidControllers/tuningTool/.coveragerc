@@ -1,0 +1,9 @@
+[run]
+branch = True
+source = pidControllers/tuningTool
+
+[html]
+directory = pidControllers/tuningTool/out/htmlcov
+
+[report]
+show_missing = True
