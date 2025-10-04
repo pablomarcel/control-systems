@@ -1,0 +1,9 @@
+[run]
+branch = True
+source = pidControllers/rootLocusTool
+
+[html]
+directory = pidControllers/rootLocusTool/out/htmlcov
+
+[report]
+show_missing = True
