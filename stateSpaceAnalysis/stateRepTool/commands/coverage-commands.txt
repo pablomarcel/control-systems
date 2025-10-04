@@ -1,0 +1,5 @@
+pytest stateSpaceAnalysis/stateRepTool/tests \
+  --override-ini addopts= \
+  --cov \
+  --cov-config=stateSpaceAnalysis/stateRepTool/.coveragerc \
+  --cov-report=term-missing

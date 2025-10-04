@@ -1,0 +1,5 @@
+pytest stateSpaceAnalysis/canonicalTool/tests \
+  --override-ini addopts= \
+  --cov \
+  --cov-config=stateSpaceAnalysis/canonicalTool/.coveragerc \
+  --cov-report=term-missing

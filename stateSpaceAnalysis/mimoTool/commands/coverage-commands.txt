@@ -1,0 +1,5 @@
+pytest stateSpaceAnalysis/mimoTool/tests \
+  --override-ini addopts= \
+  --cov \
+  --cov-config=stateSpaceAnalysis/mimoTool/.coveragerc \
+  --cov-report=term-missing
