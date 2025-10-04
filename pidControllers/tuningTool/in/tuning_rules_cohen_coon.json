@@ -1,0 +1,80 @@
+{
+  "metadata": {
+    "title": "Cohen\u2013Coon PID Tuning (normalized, K=1) \u2014 First-Order-Plus-Dead-Time",
+    "version": "0.1.0",
+    "conventions": {
+      "pid_form": "ideal (a.k.a. non-interacting)",
+      "Gc(s)": "Kp * (1 + 1/(Ti*s) + Td*s)",
+      "gain_conversions": {
+        "Ki": "Kp/Ti",
+        "Kd": "Kp*Td"
+      }
+    },
+    "notes": [
+      "Classical Cohen\u2013Coon tuning rules depend on process gain K, time constant T, and dead time L.",
+      "This file normalizes the plant gain to K=1 so it can be used with the current CLI (which accepts L and T only).",
+      "If your plant gain is not unity, scale Kp by 1/K after computing (i.e., divide the reported Kp by the actual plant gain).",
+      "Let R = L/T; many expressions below are written in L and T explicitly for clarity."
+    ]
+  },
+  "variables": {
+    "L": {
+      "unit": "s",
+      "description": "Apparent dead time (FOPDT)."
+    },
+    "T": {
+      "unit": "s",
+      "description": "Time constant (FOPDT)."
+    },
+    "R": {
+      "unit": "-",
+      "description": "Convenience ratio R=L/T (used implicitly in formulas).",
+      "derived": "L/T"
+    }
+  },
+  "methods": {
+    "CC_step": {
+      "name": "Cohen\u2013Coon step-response (normalized K=1)",
+      "inputs": [
+        "L",
+        "T"
+      ],
+      "plant_model_assumption": "First-order plus dead-time (FOPDT) with unit gain: e^{-L s} / (T s + 1)",
+      "controllers": {
+        "P": {
+          "formula": {
+            "Kp": "T/L * (1 + L/(3*T))",
+            "Ti": "inf",
+            "Td": "0"
+          },
+          "derived": {
+            "Ki": "0",
+            "Kd": "0"
+          }
+        },
+        "PI": {
+          "formula": {
+            "Kp": "T/L * (0.9 + L/(12*T))",
+            "Ti": "L * (30 + 3*(L/T)) / (9 + 20*(L/T))",
+            "Td": "0"
+          },
+          "derived": {
+            "Ki": "Kp/Ti",
+            "Kd": "0"
+          }
+        },
+        "PID": {
+          "formula": {
+            "Kp": "T/L * (1.35 + L/(20*T))",
+            "Ti": "L * (32 + 6*(L/T)) / (13 + 8*(L/T))",
+            "Td": "L * (4 / (11 + 2*(L/T)))"
+          },
+          "derived": {
+            "Ki": "Kp/Ti",
+            "Kd": "Kp*Td"
+          }
+        }
+      }
+    }
+  }
+}
