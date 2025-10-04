@@ -1,0 +1,9 @@
+[run]
+branch = True
+source = stateSpaceAnalysis/mimoTool
+
+[html]
+directory = stateSpaceAnalysis/mimoTool/out/htmlcov
+
+[report]
+show_missing = True
