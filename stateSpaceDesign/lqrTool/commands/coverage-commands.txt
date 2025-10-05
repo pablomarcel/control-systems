@@ -1,0 +1,5 @@
+pytest stateSpaceDesign/lqrTool/tests \
+  --override-ini addopts= \
+  --cov \
+  --cov-config=stateSpaceDesign/lqrTool/.coveragerc \
+  --cov-report=term-missing

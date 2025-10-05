@@ -1,0 +1,9 @@
+[run]
+branch = True
+source = stateSpaceDesign/minOrdTfTool
+
+[html]
+directory = stateSpaceDesign/minOrdTfTool/out/htmlcov
+
+[report]
+show_missing = True

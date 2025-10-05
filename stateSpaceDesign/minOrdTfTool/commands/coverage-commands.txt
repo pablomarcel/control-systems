@@ -1,0 +1,5 @@
+pytest stateSpaceDesign/minOrdTfTool/tests \
+  --override-ini addopts= \
+  --cov \
+  --cov-config=stateSpaceDesign/minOrdTfTool/.coveragerc \
+  --cov-report=term-missing

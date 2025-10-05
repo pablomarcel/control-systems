@@ -1,0 +1,5 @@
+pytest stateSpaceDesign/controllerTool/tests \
+  --override-ini addopts= \
+  --cov \
+  --cov-config=stateSpaceDesign/controllerTool/.coveragerc \
+  --cov-report=term-missing

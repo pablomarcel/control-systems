@@ -1,0 +1,5 @@
+pytest stateSpaceDesign/gainMatrixTool/tests \
+  --override-ini addopts= \
+  --cov \
+  --cov-config=stateSpaceDesign/gainMatrixTool/.coveragerc \
+  --cov-report=term-missing

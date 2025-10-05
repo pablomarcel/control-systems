@@ -1,0 +1,9 @@
+[run]
+branch = True
+source = stateSpaceDesign/statePlotsTool
+
+[html]
+directory = stateSpaceDesign/statePlotsTool/out/htmlcov
+
+[report]
+show_missing = True
