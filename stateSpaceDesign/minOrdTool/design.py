@@ -1,8 +1,25 @@
+# -*- coding: utf-8 -*-
+"""
+design.py — App/service layer for minimum-order observer design (Ogata §10-5)
+
+- Wraps the core math in a service class suitable for CLI and tests
+- Provides pretty console output (optional)
+- Produces JSON-safe payloads (NumPy & complex handled)
+"""
+
 from __future__ import annotations
+
 import logging
 import numpy as np
+
 from .core import SystemSpec, MinOrderObserverDesigner, poly_from_roots
-from .utils import array2str, pretty_poly, mat_inline, sympy_pretty_observer
+from .utils import (
+    array2str,
+    pretty_poly,
+    mat_inline,
+    sympy_pretty_observer,
+    to_jsonable,  # JSON-safe conversion
+)
 
 try:
     import control as ct
@@ -10,17 +27,51 @@ try:
 except Exception:
     HAS_CTRL = False
 
+
 class MinOrdAppService:
+    """
+    High-level façade used by the CLI and tests.
+
+    Parameters
+    ----------
+    precision : int
+        Digits for pretty-printed numeric output.
+    verbose : bool
+        If True, set root logger to DEBUG; otherwise INFO.
+    """
+
     def __init__(self, precision: int = 4, verbose: bool = False):
         self.precision = precision
         logging.getLogger().setLevel(logging.DEBUG if verbose else logging.INFO)
 
-    def design_observer(self, A, C, poles, B=None, allow_pinv=False, pretty=False, K=None, K_poles=None):
+    def design_observer(
+        self,
+        A,
+        C,
+        poles,
+        B=None,
+        allow_pinv: bool = False,
+        pretty: bool = False,
+        K=None,
+        K_poles=None,
+    ) -> dict:
+        """
+        Design a minimum-order observer for p=1 (scalar output).
+
+        Returns
+        -------
+        dict
+            JSON-safe payload with keys:
+            T, Tinv, Abar, Bbar, Aaa, Aab, Aba, Abb, Ke, Ahat, Bhat, Fhat,
+            Ctil, Dtil, eig_Ahat, charpoly_Ahat, charpoly_desired, charpoly_match,
+            (optionally) K
+        """
+        # --- Build system & run core design
         sys = SystemSpec(A=A, C=C, B=B)
         designer = MinOrderObserverDesigner(sys)
         res = designer.design(poles=np.asarray(poles, dtype=complex), allow_pinv=allow_pinv)
 
-        # Optional state feedback K
+        # --- Optional state feedback K
         K_row = None
         if K is not None:
             K_row = np.atleast_2d(np.asarray(K, float))
@@ -36,13 +87,13 @@ class MinOrdAppService:
                 raise ValueError(f"--K_poles needs n={sys.n} poles.")
             K_row = np.real_if_close(ct.acker(sys.A, sys.B, kp), 1e8).astype(float)
 
-        # Diagnostics
+        # --- Diagnostics & verification
         eig_obs = np.linalg.eigvals(res["Ahat"])
         coeff_obs = poly_from_roots(eig_obs)
         desired_coeff = poly_from_roots(np.asarray(poles, dtype=complex))
         match = np.allclose(coeff_obs, desired_coeff, rtol=1e-7, atol=1e-8)
 
-        # Pretty printing
+        # --- Pretty console output (optional)
         if pretty:
             print("\n== Minimum-Order Observer (Ogata) ==")
             print(f"n = {sys.n},  p = 1  → observer order r = n-1 = {sys.n-1}")
@@ -68,14 +119,20 @@ class MinOrdAppService:
             if res["Fhat"] is not None:
                 print("Fhat = B_b - K_e B_a:\n", array2str(res["Fhat"], self.precision))
 
-            num1 = "eta_hat_dot = " + " + ".join(filter(None, [
-                f"{mat_inline(res['Ahat'], self.precision)}·η̃",
-                f"{mat_inline(res['Bhat'], self.precision)}·y",
-                (f"{mat_inline(res['Fhat'], self.precision)}·u" if res['Fhat'] is not None else "")
-            ]))
+            num1 = "eta_hat_dot = " + " + ".join(
+                filter(
+                    None,
+                    [
+                        f"{mat_inline(res['Ahat'], self.precision)}·η̃",
+                        f"{mat_inline(res['Bhat'], self.precision)}·y",
+                        (f"{mat_inline(res['Fhat'], self.precision)}·u" if res["Fhat"] is not None else ""),
+                    ],
+                )
+            )
             num2 = f"x_hat = {mat_inline(res['Ctil'], self.precision)}·η̃ + {mat_inline(res['Dtil'], self.precision)}·y"
             print("\nOne-line observer equations (numeric):")
-            print(num1); print(num2)
+            print(num1)
+            print(num2)
 
             m_inputs = None if res["Fhat"] is None else res["Fhat"].shape[1]
             sympy_pretty_observer(res["Ahat"], res["Bhat"], res["Fhat"], res["Ctil"], res["Dtil"], m_inputs)
@@ -84,17 +141,21 @@ class MinOrdAppService:
                 print("\nControl law with minimum-order observer: u = -K x_hat")
                 print("K:", array2str(K_row, self.precision))
 
-            print("\nObserver Ahat eigenvalues:", array2str(np.real_if_close(eig_obs,1e8), self.precision))
+            print("\nObserver Ahat eigenvalues:", array2str(np.real_if_close(eig_obs, 1e8), self.precision))
             print("Char poly of Ahat (achieved):", pretty_poly(coeff_obs))
             print("Characteristic polynomial match:", "✅" if match else "❌")
 
+        # --- Build payload (keep NumPy/complex until final conversion)
         payload = {
-            **res,
-            "eig_Ahat": np.asarray(eig_obs).tolist(),
-            "charpoly_Ahat": np.asarray(coeff_obs, float).tolist(),
-            "charpoly_desired": np.asarray(desired_coeff, float).tolist(),
+            **res,  # contains many NumPy arrays
+            "eig_Ahat": np.asarray(eig_obs),
+            "charpoly_Ahat": np.asarray(coeff_obs, float),
+            "charpoly_desired": np.asarray(desired_coeff, float),
             "charpoly_match": bool(match),
         }
         if K_row is not None:
-            payload["K"] = np.asarray(K_row, float).tolist()
+            payload["K"] = np.asarray(K_row, float)
+
+        # 🔧 Make JSON-safe once, here:
+        payload = to_jsonable(payload)
         return payload
