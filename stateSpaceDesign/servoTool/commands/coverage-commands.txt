@@ -1,0 +1,5 @@
+pytest stateSpaceDesign/servoTool/tests \
+  --override-ini addopts= \
+  --cov \
+  --cov-config=stateSpaceDesign/servoTool/.coveragerc \
+  --cov-report=term-missing

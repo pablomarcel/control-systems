@@ -1,0 +1,9 @@
+[run]
+branch = True
+source = stateSpaceDesign/robustTool
+
+[html]
+directory = stateSpaceDesign/robustTool/out/htmlcov
+
+[report]
+show_missing = True

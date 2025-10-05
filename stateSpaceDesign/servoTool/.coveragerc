@@ -1,0 +1,9 @@
+[run]
+branch = True
+source = stateSpaceDesign/servoTool
+
+[html]
+directory = stateSpaceDesign/servoTool/out/htmlcov
+
+[report]
+show_missing = True

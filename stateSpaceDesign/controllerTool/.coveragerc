@@ -1,0 +1,9 @@
+[run]
+branch = True
+source = stateSpaceDesign/controllerTool
+
+[html]
+directory = stateSpaceDesign/controllerTool/out/htmlcov
+
+[report]
+show_missing = True

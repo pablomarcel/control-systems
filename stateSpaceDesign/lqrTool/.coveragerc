@@ -1,0 +1,9 @@
+[run]
+branch = True
+source = stateSpaceDesign/lqrTool
+
+[html]
+directory = stateSpaceDesign/lqrTool/out/htmlcov
+
+[report]
+show_missing = True

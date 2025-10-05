@@ -1,0 +1,9 @@
+[run]
+branch = True
+source = stateSpaceDesign/observerTool
+
+[html]
+directory = stateSpaceDesign/observerTool/out/htmlcov
+
+[report]
+show_missing = True

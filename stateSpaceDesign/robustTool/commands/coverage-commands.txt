@@ -1,0 +1,5 @@
+pytest stateSpaceDesign/robustTool/tests \
+  --override-ini addopts= \
+  --cov \
+  --cov-config=stateSpaceDesign/robustTool/.coveragerc \
+  --cov-report=term-missing

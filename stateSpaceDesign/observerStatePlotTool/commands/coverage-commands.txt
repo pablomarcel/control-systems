@@ -1,0 +1,5 @@
+pytest stateSpaceDesign/observerStatePlotTool/tests \
+  --override-ini addopts= \
+  --cov \
+  --cov-config=stateSpaceDesign/observerStatePlotTool/.coveragerc \
+  --cov-report=term-missing
