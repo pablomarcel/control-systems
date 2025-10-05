@@ -1,10 +1,9 @@
-    # -*- coding: utf-8 -*-
-    """
-    Lightweight class diagram emitter (Mermaid). Keeps external deps optional.
-    """
-    def mermaid_class_diagram() -> str:
-        return """
-```mermaid
+# -*- coding: utf-8 -*-
+"""
+Lightweight class diagram emitter (Mermaid). Keeps external deps optional.
+"""
+def mermaid_class_diagram() -> str:
+    return r"""
 classDiagram
   direction LR
   class ControllerToolApp{
@@ -38,5 +37,4 @@ classDiagram
   ControllerToolApp --> BuildResult
   BuildResult --> PlantSS
   PlotService --> BuildResult
-```
 """
