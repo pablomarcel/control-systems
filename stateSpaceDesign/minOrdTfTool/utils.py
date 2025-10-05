@@ -1,16 +1,9 @@
 
-"""
-utils.py — Shared helpers for minOrdTfTool
-"""
 from __future__ import annotations
-from typing import List, Tuple
+from typing import List
 import numpy as np
 
 def parse_mat(s: str | None) -> np.ndarray | None:
-    """
-    Parse matrix strings like "0 1; -2 -3" or "0, 1; -2, -3".
-    Returns a real-if-close ndarray of shape (r, c).
-    """
     if s is None:
         return None
     rows = [r.strip() for r in s.replace(",", " ").split(";")]
@@ -60,7 +53,18 @@ def mat_inline(M: np.ndarray, precision: int = 4) -> str:
     return "[" + "; ".join(rows) + "]"
 
 def poly_from_roots(roots: np.ndarray) -> np.ndarray:
-    return np.real_if_close(np.poly(roots), 1e8).astype(float)
+    """
+    Return real coefficients if the polynomial is real-valued up to tolerance.
+    If coefficients are genuinely complex, raise ValueError encouraging
+    conjugate pairs (required for real systems).
+    """
+    coeff = np.poly(roots)  # potentially complex
+    coeff_rc = np.real_if_close(coeff, 1e8)
+    # If still complex with meaningful imaginary parts, raise
+    if np.iscomplexobj(coeff_rc) and np.any(np.abs(np.imag(coeff_rc)) > 1e-9):
+        raise ValueError("Characteristic polynomial has complex coefficients. "
+                         "Use conjugate pairs for real-valued systems.")
+    return np.asarray(np.real(coeff_rc), float)
 
 def phi_of_A(A: np.ndarray, coeff: np.ndarray) -> np.ndarray:
     r = len(coeff) - 1
