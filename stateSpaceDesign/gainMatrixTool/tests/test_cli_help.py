@@ -1,8 +1,17 @@
-import subprocess, sys, os, pathlib
+import subprocess, sys, pathlib, os
 
 def test_cli_help_runs():
-    pkg_root = pathlib.Path(__file__).resolve().parents[2]
-    cmd = [sys.executable, "-m", "stateSpaceDesign.gainMatrixTool.cli"]
-    out = subprocess.run(cmd, capture_output=True, text=True, cwd=pkg_root)
+    # File is .../stateSpaceDesign/gainMatrixTool/tests/test_cli_help.py
+    # repo_root should be .../modernControl
+    repo_root = pathlib.Path(__file__).resolve().parents[3]
+
+    cmd = [sys.executable, "-m", "stateSpaceDesign.gainMatrixTool.cli", "--help"]
+    out = subprocess.run(cmd, capture_output=True, text=True, cwd=repo_root)
+
+    # Helpful diagnostics if it ever fails again
+    if out.returncode != 0:
+        print("STDOUT:\n", out.stdout)
+        print("STDERR:\n", out.stderr)
+
     assert out.returncode == 0
     assert "Gain-matrix design" in out.stdout
