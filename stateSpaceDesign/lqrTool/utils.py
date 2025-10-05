@@ -11,9 +11,12 @@ def controllability_rank(A, B) -> int:
 def ensure_controllable(fn: Callable):
     @wraps(fn)
     def wrapper(self, *args, **kwargs):
-        rS = controllability_rank(self.model.A, self.model.B)
-        if rS < self.model.A.shape[0]:
-            # Only warn (allow stabilizable cases); tests can assert this path
-            print(f"WARN: rank(S)={rS} < n={self.model.A.shape[0]} — system not fully controllable.")
+        # Expect the first positional arg after self to be the model
+        model = kwargs.get('model', args[0] if len(args) > 0 else None)
+        if model is None:
+            return fn(self, *args, **kwargs)
+        rS = controllability_rank(model.A, model.B)
+        if rS < model.A.shape[0]:
+            print(f"WARN: rank(S)={rS} < n={model.A.shape[0]} — system not fully controllable.")
         return fn(self, *args, **kwargs)
     return wrapper
