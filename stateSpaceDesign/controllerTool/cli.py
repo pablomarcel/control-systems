@@ -1,15 +1,56 @@
 # -*- coding: utf-8 -*-
 """
 CLI entry point for controllerTool.
-Usage:
-    python -m stateSpaceDesign.controllerTool.cli --help
+
+Works in two modes:
+  1) From project root (preferred):  python -m stateSpaceDesign.controllerTool.cli --help
+  2) From inside this folder:        python cli.py --help
+     (we install a small import shim when __package__ is not set)
 """
 from __future__ import annotations
-import argparse, logging
-from .apis import run, RunRequest
-from .io import PlotConfig, PlotService
+
+# --- Import shim so `python cli.py` works with relative imports ---
+if __package__ in (None, ""):
+    # Running as a script: add project root to sys.path and import absolute modules
+    import os, sys
+    pkg_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+    if pkg_root not in sys.path:
+        sys.path.insert(0, pkg_root)
+    from stateSpaceDesign.controllerTool.apis import run, RunRequest
+    from stateSpaceDesign.controllerTool.io import PlotConfig, PlotService
+else:
+    # Normal package execution
+    from .apis import run, RunRequest
+    from .io import PlotConfig, PlotService
+
+import argparse, logging, sys
+
+def _normalize_negative_list_args(argv: list[str]) -> list[str] | None:
+    """
+    Make CLI robust to values that *start with '-'* by converting:
+        --K_poles <value>   ->  --K_poles=<value>
+        --obs_poles <value> ->  --obs_poles=<value>
+    when the next token begins with '-' (argparse would otherwise treat it as a new option).
+    """
+    if argv is None:
+        return None
+    out = []
+    i = 0
+    sensitive = {"--K_poles", "--obs_poles"}
+    while i < len(argv):
+        tok = argv[i]
+        if tok in sensitive and i + 1 < len(argv):
+            nxt = argv[i + 1]
+            if nxt.startswith("-") and not nxt.startswith("--="):
+                out.append(f"{tok}={nxt}")
+                i += 2
+                continue
+        out.append(tok)
+        i += 1
+    return out
 
 def main(argv=None):
+    argv = _normalize_negative_list_args(list(argv) if argv is not None else sys.argv[1:])
     ap = argparse.ArgumentParser(
         prog="stateSpaceDesign.controllerTool",
         description="Ogata Sec. 10-7 controllers with observers (SISO) — object-oriented tool",
@@ -17,8 +58,8 @@ def main(argv=None):
 
     ap.add_argument("--num", required=True, help='Plant numerator, e.g. "1" or "10 20"')
     ap.add_argument("--den", required=True, help='Plant denominator, e.g. "1 0 1 0" or "1 10 24 0"')
-    ap.add_argument("--K_poles", default=None, help='Controller poles, e.g. "-1+1j,-1-1j,-8"')
-    ap.add_argument("--obs_poles", default=None, help='Observer poles, e.g. "-4,-4"')
+    ap.add_argument("--K_poles", default=None, help='Controller poles, e.g. "-1+1j,-1-1j,-8" (tip: equals-form works best)')
+    ap.add_argument("--obs_poles", default=None, help='Observer poles, e.g. "-4,-4" (tip: equals-form works best)')
 
     ap.add_argument("--ts", type=float, default=None, help="Settling-time target (sec) for auto K/observer")
     ap.add_argument("--undershoot", default=None, help='"low,high" undershoot for auto K (e.g. "0.25,0.35")')
