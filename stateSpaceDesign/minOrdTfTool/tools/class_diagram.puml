@@ -1,0 +1,45 @@
+
+@startuml
+title stateSpaceDesign.minOrdTfTool — Class Diagram
+
+package stateSpaceDesign.minOrdTfTool {
+  class MinOrdTfApp {
+    - service: MinOrdTfService
+    + run(**kwargs) : MinOrdTfResponse
+  }
+
+  class MinOrdTfService {
+    + run(req: MinOrdTfRequest) : MinOrdTfResponse
+  }
+
+  class MinOrderObserverDesigner {
+    - A: ndarray
+    - B: ndarray
+    - C: ndarray
+    - n: int
+    - r: int
+    - m: int
+    + transform_from_C() : (ndarray, ndarray)
+    + partition_bar(Abar, Bbar) : tuple
+    + compute_Ke(Abb, Aab, obs_poles, allow_pinv=False) : ndarray
+    + build_observer_blocks(...) : ObserverBlocks
+    + design_K(K_row, K_poles) : ndarray
+    + realize_controller(Tinv, obs_blocks, K) : (ControllerRealization, ControllerTF, dict)
+    + full_design(obs_poles, K_row=None, K_poles_tokens=None, allow_pinv=False)
+  }
+
+  class MinOrdTfRequest
+  class MinOrdTfResponse
+  class ObserverBlocks
+  class ControllerRealization
+  class ControllerTF
+
+  MinOrdTfApp --> MinOrdTfService
+  MinOrdTfService --> MinOrdTfRequest
+  MinOrdTfService --> MinOrdTfResponse
+  MinOrdTfService --> MinOrderObserverDesigner
+  MinOrderObserverDesigner --> ObserverBlocks
+  MinOrderObserverDesigner --> ControllerRealization
+  MinOrderObserverDesigner --> ControllerTF
+}
+@enduml
