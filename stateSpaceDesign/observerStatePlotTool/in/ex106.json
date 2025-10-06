@@ -1,0 +1,48 @@
+{
+  "A": [
+    [
+      0.0,
+      20.6
+    ],
+    [
+      1.0,
+      0.0
+    ]
+  ],
+  "B": null,
+  "C": [
+    [
+      0.0,
+      1.0
+    ]
+  ],
+  "Ke": [
+    [
+      120.6
+    ],
+    [
+      20.0
+    ]
+  ],
+  "K": null,
+  "observer": {
+    "method_requested": "auto",
+    "method_used": "ack",
+    "place_fallback_used": "none",
+    "poles_used_for_place": null
+  },
+  "A_minus_KeC": [
+    [
+      0.0,
+      -100.0
+    ],
+    [
+      1.0,
+      -20.0
+    ]
+  ],
+  "A_minus_BK": null,
+  "A_augmented": null,
+  "observer_controller_tf": null,
+  "simulation": null
+}
