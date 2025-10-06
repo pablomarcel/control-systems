@@ -1,59 +1,139 @@
 from __future__ import annotations
-from dataclasses import dataclass
-from typing import Optional, Dict, Any
+"""
+ObserverGainMatrixApp — high-level orchestration for full-order observer design,
+optional state-feedback K synthesis, closed-loop build, observer-controller TF,
+and zero-input simulation.
+
+Public entry point:
+    ObserverGainMatrixApp.run(req: ObserverRequest) -> ObserverResponse
+"""
+
+from dataclasses import dataclass, field
+from typing import Optional, Dict, Any, Tuple
+
 import numpy as np
 from numpy.linalg import eigvals
 from scipy import signal
 from scipy.linalg import expm
 
 from .apis import ObserverRequest, ObserverResponse
-from .utils import parse_matrix, parse_vector, parse_cplx_tokens, parse_cplx_csv, pretty_poly
+from .utils import (
+    parse_matrix,
+    parse_vector,
+    parse_cplx_tokens,
+    parse_cplx_csv,
+    pretty_poly,
+)
 from .core import obsv_matrix
 from .design import ObserverDesigner, ControllerDesigner
 from .io import OutputManager
 
-def latex_bmatrix(M: np.ndarray) -> str:
-    rows = [" ".join([f"{v:g}" for v in row]) for row in M]
-    return "\\begin{bmatrix}" + " \\ ".join(rows) + "\\end{bmatrix}"
 
-def latex_equation(A: np.ndarray, B: Optional[np.ndarray], C: np.ndarray, Ke: np.ndarray) -> str:
+# ---------------------- LaTeX helpers ----------------------
+def latex_bmatrix(M: np.ndarray) -> str:
+    """Render a minimal LaTeX bmatrix string without SymPy dependency."""
+    rows = [" ".join([f"{v:g}" for v in row]) for row in M]
+    return "\\begin{bmatrix}" + " \\\\ ".join(rows) + "\\end{bmatrix}"
+
+
+def latex_equation(
+    A: np.ndarray, B: Optional[np.ndarray], C: np.ndarray, Ke: np.ndarray
+) -> str:
+    """
+    Build the LaTeX observer equation snippet:
+
+        \dot{\tilde{x}} = (A - K_e C)\tilde{x} + B u + K_e y
+
+    Returns a complete display-math block.
+    """
     Acl = A - Ke @ C
     pieces = [latex_bmatrix(Acl) + "\\,\\tilde{x}"]
-    if B is not None: pieces.append(latex_bmatrix(B) + "\\,u")
+    if B is not None:
+        pieces.append(latex_bmatrix(B) + "\\,u")
     pieces.append(latex_bmatrix(Ke) + ("\\,\\mathbf{y}" if C.shape[0] > 1 else "\\,y"))
     rhs = " + ".join(pieces)
     header = "\\dot{\\tilde{x}} = (A - K_e C)\\,\\tilde{x}"
-    if B is not None: header += " + B\\,u"
+    if B is not None:
+        header += " + B\\,u"
     header += " + K_e\\," + ("\\mathbf{y}" if C.shape[0] > 1 else "y")
-    return "\[\n" + header + "\\\n= " + rhs + " \\\n\]\n"
+    # Carefully escaped newlines/brackets for Python string literals.
+    return ("\\[\\n" + header + "\\\\n= " + rhs + " \\\\n\\]\\n")
 
-def build_augmented(A: np.ndarray, B: np.ndarray, C: np.ndarray, K: np.ndarray, Ke: np.ndarray) -> np.ndarray:
-    A_BK  = A - B @ K
-    A_KeC = A - Ke @ C
+
+# ---------------------- Closed-loop / TF / sim ----------------------
+def build_augmented(
+    A: np.ndarray, B: np.ndarray, C: np.ndarray, K: np.ndarray, Ke: np.ndarray
+) -> np.ndarray:
+    """
+    Build the 2n×2n augmented matrix for the separation structure:
+
+        z = [x; e],  z_dot = [A - BK,  BK; 0,  A - KeC] z
+    """
+    if A.shape[0] != A.shape[1]:
+        raise ValueError("A must be square for augmented build.")
     n = A.shape[0]
-    top = np.hstack([A_BK,  B @ K])
+    if B.shape[0] != n or C.shape[1] != n:
+        raise ValueError("Dimension mismatch in B/C for augmented build.")
+    if K.shape[1] != n or Ke.shape[0] != n:
+        raise ValueError("Dimension mismatch in K/Ke for augmented build.")
+
+    A_BK = A - B @ K
+    A_KeC = A - Ke @ C
+    top = np.hstack([A_BK, B @ K])
     bot = np.hstack([np.zeros((n, n)), A_KeC])
     return np.vstack([top, bot])
 
-def observer_controller_tf(A: np.ndarray, B: np.ndarray, C: np.ndarray, K: np.ndarray, Ke: np.ndarray):
+
+def observer_controller_tf(
+    A: np.ndarray, B: np.ndarray, C: np.ndarray, K: np.ndarray, Ke: np.ndarray
+) -> Tuple[list, list]:
+    """
+    Observer-controller transfer:
+        Gc(s) = K (sI - A + Ke C + B K)^-1 Ke
+
+    Returns (num, den) as Python lists for JSON-ability.
+    """
+    # A_c is the closed-loop dynamics seen by the observer-controller path
     A_c = A - Ke @ C - B @ K
     B_c = Ke
     C_c = K
     D_c = np.zeros((1, B_c.shape[1]))
     num, den = signal.ss2tf(A_c, B_c, C_c, D_c)
+    # num is shaped (outputs, inputs, order+1); we’re SISO on the "u<-y" path
     return num[0].tolist(), den.tolist()
 
-def simulate_initial(A_aug: np.ndarray, C: np.ndarray, K: np.ndarray,
-                     x0: np.ndarray, e0: np.ndarray,
-                     t_final: float, dt: float):
-    z0 = np.vstack([x0.reshape(-1,1), e0.reshape(-1,1)])
+
+def simulate_initial(
+    A_aug: np.ndarray,
+    C: np.ndarray,
+    K: np.ndarray,
+    x0: np.ndarray,
+    e0: np.ndarray,
+    t_final: float,
+    dt: float,
+) -> Tuple[list, list, list, list, list]:
+    """
+    Zero-input simulation of the augmented system using exact discretization step:
+        z_{k+1} = expm(A_aug * dt) z_k
+    Produces t, X, E, U, Y as lists for JSON-ability.
+    """
+    if t_final <= 0:
+        raise ValueError("t_final must be positive for simulation.")
+    if dt <= 0:
+        raise ValueError("dt must be positive for simulation.")
+    if x0.ndim != 2 or e0.ndim != 2:
+        raise ValueError("x0 and e0 must be column vectors (n×1).")
+
+    z0 = np.vstack([x0.reshape(-1, 1), e0.reshape(-1, 1)])
     Phi = expm(A_aug * dt)
     N = int(np.round(t_final / dt)) + 1
     n = x0.size
-    t = np.linspace(0.0, dt*(N-1), N)
+    t = np.linspace(0.0, dt * (N - 1), N)
     z = z0.copy()
-    X = np.zeros((n, N)); E = np.zeros((n, N))
-    U = np.zeros(N); Y = np.zeros(N)
+    X = np.zeros((n, N))
+    E = np.zeros((n, N))
+    U = np.zeros(N)
+    Y = np.zeros(N)
     for k in range(N):
         x = z[:n, :]
         e = z[n:, :]
@@ -64,71 +144,127 @@ def simulate_initial(A_aug: np.ndarray, C: np.ndarray, K: np.ndarray,
         z = Phi @ z
     return t.tolist(), X.tolist(), E.tolist(), U.tolist(), Y.tolist()
 
+
+# ---------------------- Application ----------------------
 @dataclass
 class ObserverGainMatrixApp:
-    out: OutputManager = OutputManager()
+    """
+    Thin, testable orchestration layer.
+    - Does not log or print; returns structured response for callers (CLI, notebooks, tests).
+    - Keeps I/O (file writes) behind OutputManager injected via `out`.
+    """
+    out: OutputManager = field(default_factory=OutputManager)
 
-    def run(self, req: ObserverRequest) -> ObserverResponse:
-        # Parse matrices
+    def _parse_and_validate(self, req: ObserverRequest) -> Tuple[np.ndarray, Optional[np.ndarray], np.ndarray]:
+        """Parse A/B/C from request and validate shapes."""
         A = parse_matrix(req.A)
         C = parse_matrix(req.C)
-        if A.shape[0] != A.shape[1]:
-            raise ValueError("A must be square.")
-        if C.shape[1] != A.shape[0]:
-            raise ValueError("C must have n columns.")
+        if A.ndim != 2 or A.shape[0] != A.shape[1]:
+            raise ValueError("A must be a square 2D matrix.")
+        if C.ndim != 2 or C.shape[1] != A.shape[0]:
+            raise ValueError("C must be 2D with n columns matching A.")
         B = parse_matrix(req.B) if req.B else None
-        n = A.shape[0]
+        if B is not None and (B.ndim != 2 or B.shape[0] != A.shape[0]):
+            raise ValueError("B must be 2D with n rows matching A.")
+        return A, B, C
 
-        # Observer design
+    def _design_observer(self, A: np.ndarray, C: np.ndarray, req: ObserverRequest) -> Tuple[np.ndarray, Dict[str, Any], str]:
+        """Compute Ke with requested method and meta."""
+        n = A.shape[0]
+        if not isinstance(req.poles, (list, tuple, np.ndarray)):
+            raise ValueError("poles must be a sequence of complex (or real) values.")
         if len(req.poles) != n:
             raise ValueError(f"Observer poles must have length n={n}.")
+
+        # Observability check
         Mo = obsv_matrix(A, C)
         if np.linalg.matrix_rank(Mo) != n:
             raise ValueError("System not observable (rank(Mo) < n).")
-        designer = ObserverDesigner()
-        res = designer.compute(A, C, np.array(req.poles, dtype=complex),
-                               method=req.method, place_fallback=req.place_fallback,
-                               jitter_eps=req.jitter_eps)
-        Ke = np.asarray(res.Ke).reshape(n, C.shape[0])
 
-        # Optional controller K
-        K = None
+        designer = ObserverDesigner()
+        poles_e = np.array(req.poles, dtype=complex)
+        res = designer.compute(
+            A, C, poles_e, method=req.method, place_fallback=req.place_fallback, jitter_eps=req.jitter_eps
+        )
+        Ke = np.asarray(res.Ke).reshape(n, C.shape[0])
+        meta = {
+            "method_used": res.method_used,
+            "place_fallback_used": res.meta.get("place_fallback_used"),
+            "poles_used_for_place": res.meta.get("poles_used_for_place"),
+        }
+        return Ke, meta, res.method_used
+
+    def _design_controller_if_requested(
+        self, A: np.ndarray, B: Optional[np.ndarray], C: np.ndarray, req: ObserverRequest
+    ) -> Optional[np.ndarray]:
+        """Optional state-feedback K via explicit K or pole placement."""
+        n = A.shape[0]
         if req.K:
             K = parse_matrix(req.K).reshape(1, -1)
             if K.shape[1] != n:
                 raise ValueError(f"Provided K must have length n={n}.")
-        else:
-            poles_tokens = None
-            if req.K_poles_list: poles_tokens = req.K_poles_list
-            elif req.K_poles_csv: poles_tokens = [req.K_poles_csv]
-            if poles_tokens and B is None:
-                raise ValueError("B is required if K poles provided.")
-            if poles_tokens and B is not None:
-                if req.K_poles_list:
-                    poles_k = parse_cplx_tokens(poles_tokens)
-                else:
-                    poles_k = parse_cplx_csv(req.K_poles_csv)
-                if poles_k.size != n:
-                    raise ValueError(f"K_poles length must be n={n}.")
-                K = ControllerDesigner().compute_place(A, B, poles_k)
+            return K
 
-        # Pretty block (optional)
-        pretty_blocks = []
+        # Poles form: CSV or list
+        poles_tokens = None
+        if req.K_poles_list:
+            poles_tokens = req.K_poles_list
+        elif req.K_poles_csv:
+            poles_tokens = [req.K_poles_csv]
+
+        if not poles_tokens:
+            return None
+
+        if B is None:
+            raise ValueError("B is required if K poles provided.")
+
+        poles_k = parse_cplx_tokens(poles_tokens) if req.K_poles_list else parse_cplx_csv(req.K_poles_csv)  # type: ignore
+        if poles_k.size != n:
+            raise ValueError(f"K_poles length must be n={n}.")
+        return ControllerDesigner().compute_place(A, B, poles_k)
+
+    def _pretty_block(self, A: np.ndarray, C: np.ndarray, Ke: np.ndarray, method_used: str, meta: Dict[str, Any]) -> list[str]:
+        """Builds human-friendly summary strings."""
+        Aerr = A - Ke @ C
+        # Stable characteristic polynomial coefficients (real part)
+        char_ach = np.poly(np.sort_complex(eigvals(Aerr))).real
+        blocks = [
+            "== Full-Order Observer Design ==",
+            f"Used method: {method_used}  |  place_fallback: {meta.get('place_fallback_used')}",
+        ]
+        if method_used == "place" and meta.get("place_fallback_used") == "jitter":
+            blocks.append(f"Poles used for place(): {meta.get('poles_used_for_place')}")
+        blocks.append(f"Ke (n×p):\n{Ke}")
+        blocks.append(f"|sI - (A - Ke C)| = {pretty_poly(char_ach)}")
+        return blocks
+
+    def run(self, req: ObserverRequest) -> ObserverResponse:
+        """
+        Orchestrate full computation. Returns:
+            - matrices and design metadata,
+            - optional closed-loop build, transfer, and simulation,
+            - optional LaTeX snippet path.
+        """
+        # Parse & validate
+        A, B, C = self._parse_and_validate(req)
+        n = A.shape[0]
+
+        # Observer K_e
+        Ke, meta, method_used = self._design_observer(A, C, req)
+
+        # Optional K
+        K = self._design_controller_if_requested(A, B, C, req)
+
+        # Pretty strings (optional)
+        pretty_blocks: list[str] = []
         if req.pretty:
-            Aerr = A - Ke @ C
-            char_ach = np.poly(np.sort_complex(eigvals(Aerr))).real
-            pretty_blocks.append("== Full-Order Observer Design ==")
-            pretty_blocks.append(f"Used method: {res.method_used}  |  place_fallback: {res.meta.get('place_fallback_used')}")
-            if res.method_used == "place" and res.meta.get("place_fallback_used") == "jitter":
-                pretty_blocks.append(f"Poles used for place(): {res.meta.get('poles_used_for_place')}")
-            pretty_blocks.append(f"Ke (n×p):\n{Ke}")
-            pretty_blocks.append(f"|sI - (A - Ke C)| = {pretty_poly(char_ach)}")
+            pretty_blocks = self._pretty_block(A, C, Ke, method_used, meta)
 
         # Optional LaTeX
-        latex_path = None
+        latex_path: Optional[str] = None
         if req.latex_out:
             latex_text = latex_equation(A, B, C, Ke)
-            latex_path = self.out.write_text(latex_text, req.latex_out)
+            latex_path = str(self.out.write_text(latex_text, req.latex_out))
 
         # Closed-loop / TF / sim
         A_BK = A_KeC = A_aug = None
@@ -137,12 +273,13 @@ class ObserverGainMatrixApp:
         if req.compute_closed_loop:
             if K is None or Ke is None or B is None:
                 raise ValueError("compute_closed_loop requires both K and K_e (and B).")
-            A_BK  = (A - B @ K)
-            A_KeC = (A - Ke @ C)
+            A_BK = A - B @ K
+            A_KeC = A - Ke @ C
             A_aug = build_augmented(A, B, C, K, Ke)
             tf_num, tf_den = observer_controller_tf(A, B, C, K, Ke)
             if req.x0 and req.e0 and req.t_final > 0:
-                x0 = parse_vector(req.x0); e0 = parse_vector(req.e0)
+                x0 = parse_vector(req.x0)
+                e0 = parse_vector(req.e0)
                 if x0.size != n or e0.size != n:
                     raise ValueError(f"x0 and e0 must each have length n={n}.")
                 t, X, E, U, Y = simulate_initial(A_aug, C, K, x0, e0, req.t_final, req.dt)
@@ -153,17 +290,13 @@ class ObserverGainMatrixApp:
             "B": (B.tolist() if B is not None else None),
             "C": C.tolist(),
             "Ke": Ke.tolist(),
-            "K":  (K.tolist() if K is not None else None),
-            "observer": {
-                "method_used": res.method_used,
-                "place_fallback_used": res.meta.get("place_fallback_used"),
-                "poles_used_for_place": res.meta.get("poles_used_for_place"),
-            },
+            "K": (K.tolist() if K is not None else None),
+            "observer": meta,
             "A_minus_KeC": (A - Ke @ C).tolist(),
             "A_minus_BK": (A_BK.tolist() if A_BK is not None else None),
             "A_augmented": (A_aug.tolist() if A_aug is not None else None),
             "observer_controller_tf": ({"num": tf_num, "den": tf_den} if tf_num is not None else None),
             "simulation": sim,
-            "latex_path": (str(latex_path) if latex_path else None),
+            "latex_path": latex_path,
         }
         return ObserverResponse(data=data, pretty_blocks=pretty_blocks)
