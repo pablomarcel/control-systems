@@ -1,7 +1,22 @@
 from __future__ import annotations
 import argparse
-from .apis import PlotRequest, SimulateOptions
-from .app import ObserverStatePlotApp
+
+# --- Import shim --------------------------------------------------------------
+# Allow running as a script (python cli.py) OR as a module (-m stateSpaceDesign.observerStatePlotTool[.cli]).
+try:
+    from .apis import PlotRequest, SimulateOptions
+    from .app import ObserverStatePlotApp
+except Exception:
+    # Fallback for direct script execution where relative imports lack a parent package
+    import sys, pathlib
+    pkg_dir = pathlib.Path(__file__).resolve().parent                       # .../stateSpaceDesign/observerStatePlotTool
+    project_root = pkg_dir.parent.parent                                    # .../modernControl
+    if str(project_root) not in sys.path:
+        sys.path.insert(0, str(project_root))
+    # Import via absolute package path
+    from stateSpaceDesign.observerStatePlotTool.apis import PlotRequest, SimulateOptions
+    from stateSpaceDesign.observerStatePlotTool.app import ObserverStatePlotApp
+# -----------------------------------------------------------------------------
 
 def build_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(
@@ -27,7 +42,19 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv=None):
     ap = build_parser()
-    args = ap.parse_args(argv)
+    # Accept being invoked as a module with sys.argv that still contains '-m package'
+    import sys as _sys
+    raw = list(argv) if argv is not None else list(_sys.argv[1:])
+    if "-m" in raw:
+        try:
+            i = raw.index("-m")
+            # Drop '-m' and the module name immediately following it, if present.
+            del raw[i]
+            if i < len(raw):
+                del raw[i]
+        except Exception:
+            pass
+    args = ap.parse_args(raw)
 
     req = PlotRequest(
         data_path=args.data,
@@ -48,7 +75,7 @@ def main(argv=None):
 
     # Allow 'none' backend for CSV-only exports
     if req.backend == "none":
-        req.backend = "mpl"  # internally use mpl but don't show and don't save plot unless asked
+        req.backend = "mpl"
         req.no_show = True
         req.save_png = None
         req.save_html = None
