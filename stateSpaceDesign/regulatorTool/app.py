@@ -12,7 +12,7 @@ import numpy as np
 from .apis import RegulatorRunRequest, RegulatorService
 from .design import RegulatorDesigner
 from .utils import HAS_MPL, HAS_PLOTLY
-from .io import out_path
+from .io import out_path, resolve_save_prefix
 
 def _maybe_plot(service: RegulatorService, show: bool = True, save_prefix: Optional[str] = None,
                 rl_axes: Tuple[float, float, float, float] = (-14, 2, -8, 8), rl_k: str = "auto",
@@ -32,6 +32,9 @@ def _maybe_plot(service: RegulatorService, show: bool = True, save_prefix: Optio
     want_mpl = backend in ("mpl", "both") and HAS_MPL
     want_ply = backend in ("plotly", "both") and HAS_PLOTLY
 
+    # Resolve save prefix to a concrete path (or None)
+    save_base = resolve_save_prefix(save_prefix)
+
     if want_mpl:
         import matplotlib.pyplot as plt  # local import
         # Bode — open loop
@@ -41,8 +44,8 @@ def _maybe_plot(service: RegulatorService, show: bool = True, save_prefix: Optio
         axm.set_ylabel("Magnitude (dB)"); axp.set_ylabel("Phase (deg)"); axp.set_xlabel("Frequency (rad/sec)")
         axm.set_title("Bode Diagram — Open Loop"); axm.grid(True, ls=":", lw=0.6); axp.grid(True, ls=":", lw=0.6)
         fig2.tight_layout()
-        if save_prefix:
-            fig2.savefig(out_path(f"{save_prefix}_bode_open.png"))
+        if save_base:
+            fig2.savefig(f"{save_base}_bode_open.png")
         if show:
             plt.show()
 
@@ -51,10 +54,10 @@ def _maybe_plot(service: RegulatorService, show: bool = True, save_prefix: Optio
         axm2.semilogx(w_cl, mag_cl); axp2.semilogx(w_cl, ph_cl)
         axm2.set_ylim(-60, 20); axp2.set_ylim(-200, 0); axp2.set_xlim(1e-1, 1e2)
         axm2.set_ylabel("Magnitude (dB)"); axp2.set_ylabel("Phase (deg)"); axp2.set_xlabel("Frequency (rad/sec)")
-        axm2.set_title("Bode Diagram — Closed Loop"); axm2.grid(True, ls=":", lw=0.6); axp2.grid(True, ls=":", lw=0.6)
+        axm2.set_title("Bode Diagram — Closed Loop"); axm2.grid(True, ls=":", lw=0.6); axp2.grid(True, ls=":",  lw=0.6)
         fig3.tight_layout()
-        if save_prefix:
-            fig3.savefig(out_path(f"{save_prefix}_bode_closed.png"))
+        if save_base:
+            fig3.savefig(f"{save_base}_bode_closed.png")
         if show:
             plt.show()
 
@@ -69,8 +72,8 @@ def _maybe_plot(service: RegulatorService, show: bool = True, save_prefix: Optio
         ax4.grid(True, ls=":", lw=0.6); ax4.set_aspect('equal', adjustable='box')
         ax4.set_title("Root Locus of L(s)=Gc(s)G(s) with scalar gain k")
         ax4.set_xlabel("Real"); ax4.set_ylabel("Imag")
-        if save_prefix:
-            fig4.savefig(out_path(f"{save_prefix}_root_locus.png"))
+        if save_base:
+            fig4.savefig(f"{save_base}_root_locus.png")
         if show:
             plt.show()
 
@@ -89,8 +92,8 @@ def _maybe_plot(service: RegulatorService, show: bool = True, save_prefix: Optio
         fig2.update_xaxes(type="log", range=[-3, 2], matches='x', row=2, col=1, title_text="Frequency (rad/sec)")
         fig2.update_yaxes(title="Magnitude (dB)", range=[-100, 100], row=1, col=1)
         fig2.update_yaxes(title="Phase (deg)",     range=[-200, -50], row=2, col=1)
-        if save_prefix:
-            fig2.write_html(out_path(f"{save_prefix}_bode_open.html"), include_plotlyjs="cdn")
+        if save_base:
+            fig2.write_html(f"{save_base}_bode_open.html", include_plotlyjs="cdn")
         if show:
             fig2.show(config={"responsive": True})
 
@@ -104,8 +107,8 @@ def _maybe_plot(service: RegulatorService, show: bool = True, save_prefix: Optio
         fig3.update_xaxes(type="log", range=[-1, 2], matches='x', row=2, col=1, title_text="Frequency (rad/sec)")
         fig3.update_yaxes(title="Magnitude (dB)", range=[-60, 20], row=1, col=1)
         fig3.update_yaxes(title="Phase (deg)",     range=[-200, 0], row=2, col=1)
-        if save_prefix:
-            fig3.write_html(out_path(f"{save_prefix}_bode_closed.html"), include_plotlyjs="cdn")
+        if save_base:
+            fig3.write_html(f"{save_base}_bode_closed.html", include_plotlyjs="cdn")
         if show:
             fig3.show(config={"responsive": True})
 
@@ -119,14 +122,14 @@ def _maybe_plot(service: RegulatorService, show: bool = True, save_prefix: Optio
         fig4.update_yaxes(range=[rl_ymin, rl_ymax], title="Imag", scaleratio=1)
         fig4.update_layout(title="Root Locus of L(s)=Gc(s)G(s) with scalar gain k",
                            autosize=(width is None), width=width, height=650)
-        if save_prefix:
-            fig4.write_html(out_path(f"{save_prefix}_root_locus.html"), include_plotlyjs="cdn")
+        if save_base:
+            fig4.write_html(f"{save_base}_root_locus.html", include_plotlyjs="cdn")
         if show:
             fig4.show(config={"responsive": True})
 
 def run_app(req: RegulatorRunRequest) -> None:
     service = RegulatorService(req)
-    result = service.run()
+    _ = service.run()
     # Plotting
     if req.plots != "none":
         _maybe_plot(service,
