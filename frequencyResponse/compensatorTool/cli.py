@@ -1,38 +1,84 @@
-# cli.py
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 from __future__ import annotations
+
+"""
+frequencyResponse.compensatorTool.cli
+
+Import shim:
+- Supports both module mode:  python -m frequencyResponse.compensatorTool.cli
+- And script mode from inside the package folder:  python cli.py
+  (we add the project root to sys.path and import absolute modules)
+"""
 
 import argparse
 import logging
+import os
 import sys
 
-from .apis import (
-    PlantSpec,
-    DesignOptions,
-    PlotOptions,
-    FrequencyGrid,
-    LagLeadDesignSpec,
-)
+# ---------- Import shim so `python cli.py` works with absolute imports ----------
+if __package__ in (None, ""):
+    # Running as a script: add project root to sys.path and import absolute modules
+    pkg_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+    if pkg_root not in sys.path:
+        sys.path.insert(0, pkg_root)
 
-# Lead-only API types are optional (present when lead.py + apis additions are installed)
-try:
-    from .apis import LeadDesignSpec, LeadDesignOptions  # type: ignore
-    _HAVE_LEAD_API = True
-except Exception:  # pragma: no cover (keeps lag-lead tests passing if lead API not yet present)
-    LeadDesignSpec = None  # type: ignore
-    LeadDesignOptions = None  # type: ignore
-    _HAVE_LEAD_API = False
+    # Absolute imports under the top-level package name
+    from frequencyResponse.compensatorTool.apis import (  # type: ignore
+        PlantSpec,
+        DesignOptions,
+        PlotOptions,
+        FrequencyGrid,
+        LagLeadDesignSpec,
+    )
+    try:
+        from frequencyResponse.compensatorTool.apis import LeadDesignSpec, LeadDesignOptions  # type: ignore
+        _HAVE_LEAD_API = True
+    except Exception:  # pragma: no cover
+        LeadDesignSpec = None  # type: ignore
+        LeadDesignOptions = None  # type: ignore
+        _HAVE_LEAD_API = False
 
-# Lag-only API types are optional (present when lag.py + apis additions are installed)
-try:
-    from .apis import LagDesignSpec, LagDesignOptions  # type: ignore
-    _HAVE_LAG_API = True
-except Exception:  # pragma: no cover
-    LagDesignSpec = None  # type: ignore
-    LagDesignOptions = None  # type: ignore
-    _HAVE_LAG_API = False
+    try:
+        from frequencyResponse.compensatorTool.apis import LagDesignSpec, LagDesignOptions  # type: ignore
+        _HAVE_LAG_API = True
+    except Exception:  # pragma: no cover
+        LagDesignSpec = None  # type: ignore
+        LagDesignOptions = None  # type: ignore
+        _HAVE_LAG_API = False
 
-from .app import CompensatorApp
-from .utils import parse_list_floats
+    from frequencyResponse.compensatorTool.app import CompensatorApp  # type: ignore
+    from frequencyResponse.compensatorTool.utils import parse_list_floats  # type: ignore
+else:
+    # Normal package execution (relative imports)
+    from .apis import (
+        PlantSpec,
+        DesignOptions,
+        PlotOptions,
+        FrequencyGrid,
+        LagLeadDesignSpec,
+    )
+
+    # Lead-only API types are optional (present when lead.py + apis additions are installed)
+    try:
+        from .apis import LeadDesignSpec, LeadDesignOptions  # type: ignore
+        _HAVE_LEAD_API = True
+    except Exception:  # pragma: no cover (keeps lag-lead tests passing if lead API not yet present)
+        LeadDesignSpec = None  # type: ignore
+        LeadDesignOptions = None  # type: ignore
+        _HAVE_LEAD_API = False
+
+    # Lag-only API types are optional (present when lag.py + apis additions are installed)
+    try:
+        from .apis import LagDesignSpec, LagDesignOptions  # type: ignore
+        _HAVE_LAG_API = True
+    except Exception:  # pragma: no cover
+        LagDesignSpec = None  # type: ignore
+        LagDesignOptions = None  # type: ignore
+        _HAVE_LAG_API = False
+
+    from .app import CompensatorApp
+    from .utils import parse_list_floats
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -213,7 +259,10 @@ def main(argv: list[str] | None = None) -> int:
         spec = LeadDesignSpec(plant=plant, design=lead_design, plot=plot, grid=grid)  # type: ignore
 
         # Call the lead-only engine directly to avoid touching CompensatorApp/tests
-        from .lead import LeadDesigner  # lazy import to keep deps light for laglead tests
+        if __package__ in (None, ""):
+            from frequencyResponse.compensatorTool.lead import LeadDesigner  # type: ignore
+        else:
+            from .lead import LeadDesigner  # type: ignore
         result = LeadDesigner().run(spec)  # type: ignore
 
     elif args.mode == "lag":
@@ -237,7 +286,10 @@ def main(argv: list[str] | None = None) -> int:
         spec = LagDesignSpec(plant=plant, design=lag_design, plot=plot, grid=grid)  # type: ignore
 
         # Call the lag-only engine directly to avoid touching CompensatorApp/tests
-        from .lag import LagDesigner  # lazy import
+        if __package__ in (None, ""):
+            from frequencyResponse.compensatorTool.lag import LagDesigner  # type: ignore
+        else:
+            from .lag import LagDesigner  # type: ignore
         result = LagDesigner().run(spec)  # type: ignore
 
     else:
