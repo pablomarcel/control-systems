@@ -1,7 +1,24 @@
-
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 from __future__ import annotations
+
 import argparse
-from .app import ZeroPoleApp, AppConfig
+import os
+import sys
+
+# ---------- Import shim so `python cli.py` works with absolute imports ----------
+if __package__ in (None, ""):
+    # Running as a script from this folder: add project root to sys.path
+    # .../modernControl/pidControllers/zeroPoleTool/cli.py  -> project root is two levels up
+    proj_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+    if proj_root not in sys.path:
+        sys.path.insert(0, proj_root)
+
+    # Import the package modules via absolute path
+    from pidControllers.zeroPoleTool.app import ZeroPoleApp, AppConfig
+else:
+    # Normal package execution (python -m ...)
+    from .app import ZeroPoleApp, AppConfig
 
 def build_parser():
     p = argparse.ArgumentParser(description="Two-DOF zero-placement (Ogata §8-7) — zeroPoleTool")
