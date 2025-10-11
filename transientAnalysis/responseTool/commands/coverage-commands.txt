@@ -1,0 +1,5 @@
+pytest transientAnalysis/responseTool/tests \
+  --override-ini addopts= \
+  --cov \
+  --cov-config=transientAnalysis/responseTool/.coveragerc \
+  --cov-report=term-missing
