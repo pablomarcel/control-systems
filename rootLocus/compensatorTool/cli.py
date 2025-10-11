@@ -1,5 +1,16 @@
-# modernControl/rootLocus/compensatorTool/cli.py
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 from __future__ import annotations
+
+import os, sys
+# ---------- Import shim so `python cli.py` works with absolute imports ----------
+if __package__ in (None, ""):
+    # Running as a script: add project root to sys.path and set package so relative imports work
+    pkg_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+    if pkg_root not in sys.path:
+        sys.path.insert(0, pkg_root)
+    # Make relative imports below resolve as package imports
+    __package__ = "rootLocus.compensatorTool"
 
 from typing import Optional, Tuple, Literal
 import click
@@ -15,7 +26,7 @@ def cli():
 @cli.command(
     "design",
     help=(
-        "Run a compensator design and print a summary (with optional plots).\n\n"
+        "Run a compensator design and print a summary (with optional plots)\n\n"
         "Lag–Lead designer (Ogata Sec. 6-8), multi-lead edition - rootLocus.compensatorTool."
     ),
 )
