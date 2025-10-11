@@ -133,7 +133,14 @@ class NumericChecker:
         self.tol = tol
 
     def eval_numeric(self, expr: sp.Expr, subs: Dict[sp.Symbol, float]) -> float:
-        return float(sp.N(expr.subs(subs)))
+        """
+        Safely evaluate possibly-plain-numeric or symbolic expressions with substitutions.
+        Handles Python ints/floats by coercing to SymPy first.
+        """
+        e = sp.sympify(expr)
+        if subs:
+            e = e.subs(subs)
+        return float(sp.N(e))
 
     def check(self, poly: Polynomial, subs: Dict[sp.Symbol, float], use_lienard: bool) -> Tuple[bool, Dict]:
         a_num = [self.eval_numeric(ai, subs) for ai in poly.a_desc]

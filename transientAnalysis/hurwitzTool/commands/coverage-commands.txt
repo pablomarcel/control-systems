@@ -1,0 +1,5 @@
+pytest transientAnalysis/hurwitzTool/tests \
+  --override-ini addopts= \
+  --cov \
+  --cov-config=transientAnalysis/hurwitzTool/.coveragerc \
+  --cov-report=term-missing

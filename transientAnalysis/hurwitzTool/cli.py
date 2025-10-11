@@ -4,20 +4,39 @@
 from __future__ import annotations
 
 import argparse
+import os
+import sys
 from pathlib import Path
 
 import numpy as np
 import sympy as sp
 
-from .apis import (
-    HurwitzService,
-    NumericCheckRequest,
-    SymbolicRegionRequest,
-    Scan1DRequest,
-    Scan2DRequest,
-)
-from .utils import ascii_heatmap, parse_coeffs
-from .io import IOManager
+# ---------- Import shim so `python cli.py` works with absolute imports ----------
+if __package__ in (None, ""):
+    # Running as a script: add project root to sys.path and import absolute modules
+    pkg_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+    if pkg_root not in sys.path:
+        sys.path.insert(0, pkg_root)
+    from transientAnalysis.hurwitzTool.apis import (
+        HurwitzService,
+        NumericCheckRequest,
+        SymbolicRegionRequest,
+        Scan1DRequest,
+        Scan2DRequest,
+    )
+    from transientAnalysis.hurwitzTool.utils import ascii_heatmap, parse_coeffs
+    from transientAnalysis.hurwitzTool.io import IOManager
+else:
+    # Normal package execution
+    from .apis import (
+        HurwitzService,
+        NumericCheckRequest,
+        SymbolicRegionRequest,
+        Scan1DRequest,
+        Scan2DRequest,
+    )
+    from .utils import ascii_heatmap, parse_coeffs
+    from .io import IOManager
 
 
 def build_parser() -> argparse.ArgumentParser:
