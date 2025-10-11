@@ -3,9 +3,9 @@
 from __future__ import annotations
 import json
 from dataclasses import dataclass
-from typing import Any, Dict, Mapping, Optional
+from typing import Any, Dict
 from pathlib import Path
-from .tools.tool_paths import IN_DIR
+from .tools.tool_paths import IN_DIR, PKG_ROOT
 
 class RulesLoadError(RuntimeError):
     pass
@@ -16,10 +16,19 @@ class RulesRepository:
     default_file: str = "tuning_rules.json"
 
     def _resolve(self, file: str | None) -> Path:
-        if file:
-            p = Path(file)
-            return p if p.is_absolute() else (IN_DIR / p)
-        return IN_DIR / self.default_file
+        if not file:
+            return IN_DIR / self.default_file
+
+        p = Path(file)
+        if p.is_absolute():
+            return p
+
+        # Allow 'in/...' or 'out/...' relative to the package root
+        if p.parts and p.parts[0] in {"in", "out"}:
+            return PKG_ROOT / p
+
+        # Otherwise, treat as a filename under in/
+        return IN_DIR / p
 
     def read_json(self, file: str | None = None) -> Dict[str, Any]:
         path = self._resolve(file)

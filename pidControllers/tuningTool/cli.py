@@ -1,17 +1,30 @@
 
 # cli.py
 from __future__ import annotations
-import argparse, sys, csv, json
-from .app import TuningApp
-from .utils import TuningInputs
-from .tools.tool_paths import OUT_DIR, ensure_outdir
+import argparse, sys, csv, json, os
+
+# ---------- Import shim so `python cli.py` works with absolute imports ----------
+if __package__ in (None, ""):
+    # Running as a script: add project root to sys.path and import absolute modules
+    _pkg_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+    if _pkg_root not in sys.path:
+        sys.path.insert(0, _pkg_root)
+
+    from pidControllers.tuningTool.app import TuningApp
+    from pidControllers.tuningTool.utils import TuningInputs
+    from pidControllers.tuningTool.tools.tool_paths import OUT_DIR, ensure_outdir
+else:
+    # Normal package execution
+    from .app import TuningApp
+    from .utils import TuningInputs
+    from .tools.tool_paths import OUT_DIR, ensure_outdir
 
 def _build_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(prog="pidControllers.tuningTool", description="Query PID tuning rules (Ziegler–Nichols, extendable).")
-    ap.add_argument("--file", default="tuning_rules.json", help="Rules JSON file (looked up under pidControllers/tuningTool/in).")
-    ap.add_argument("--method", help="Method key as defined in the JSON (e.g., ZN_step, ZN_ultimate, CC_step, ...).")
-    ap.add_argument("--controller", help="Controller key as defined in the JSON (e.g., P, PI, PID).")
-    # Inputs are optional flags; validation will be driven by JSON's methods[...]['inputs']
+    ap.add_argument("--file", default="tuning_rules.json", help="Rules JSON file. If relative, resolved under pidControllers/tuningTool/in.")
+    ap.add_argument("--method", help="Method key in JSON (e.g., ZN_step, ZN_ultimate, CC_step).")
+    ap.add_argument("--controller", help="Controller key in JSON (e.g., P, PI, PID).")
+    # Inputs are optional flags; validation is driven by JSON's methods[...]['inputs']
     ap.add_argument("--L", type=float, help="Process dead time L.")
     ap.add_argument("--T", type=float, help="Process time constant T.")
     ap.add_argument("--Kcr", type=float, help="Critical gain Kcr.")
@@ -28,10 +41,7 @@ def _validate_required_inputs(app: TuningApp, args) -> tuple[bool, str]:
     if args.method not in data.get("methods", {}):
         return False, f"Unknown method '{args.method}'. Try --list methods."
     req = list(data["methods"][args.method].get("inputs", []))
-    missing = []
-    for name in req:
-        if getattr(args, name, None) is None:
-            missing.append(name)
+    missing = [name for name in req if getattr(args, name, None) is None]
     if missing:
         return False, f"Method '{args.method}' requires inputs: {', '.join(req)}. Missing: {', '.join(missing)}."
     # Also check controller exists under method
@@ -88,7 +98,12 @@ def main(argv: list[str] | None = None) -> int:
     inputs = TuningInputs(L=args.L, T=args.T, Kcr=args.Kcr, Pcr=args.Pcr)
     res = app.run_compute(method=args.method, controller=args.controller, inputs=inputs, file=args.file)
 
-    from .apis import PrintAPI, ExportAPI
+    # Late import to avoid cycles in shim mode
+    if __package__ in (None, ""):
+        from pidControllers.tuningTool.apis import PrintAPI, ExportAPI
+    else:
+        from .apis import PrintAPI, ExportAPI
+
     text = PrintAPI().render_text(res, precision=args.precision)
     print(text)
 
@@ -100,7 +115,6 @@ def main(argv: list[str] | None = None) -> int:
             print(f"Saved JSON → {OUT_DIR / args.export_json}")
         if args.export_csv:
             fields = ["method", "controller", "Kp", "Ti", "Td", "Ki", "Kd"]
-            import csv
             with (OUT_DIR / args.export_csv).open("w", newline="") as f:
                 w = csv.writer(f)
                 w.writerow(fields)
