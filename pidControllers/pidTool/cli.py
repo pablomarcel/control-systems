@@ -1,8 +1,26 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 from __future__ import annotations
+
 import argparse
-from .core import tf_from_args, Requirements
-from .design import make_grids
-from .app import PIDDesignerApp
+import os
+import sys
+
+# ---------- Import shim so `python cli.py` works with absolute imports ----------
+if __package__ in (None, ""):
+    # Running as a script from inside pidControllers/pidTool
+    pkg_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+    if pkg_root not in sys.path:
+        sys.path.insert(0, pkg_root)
+    # Absolute imports now work
+    from pidControllers.pidTool.core import tf_from_args, Requirements
+    from pidControllers.pidTool.design import make_grids
+    from pidControllers.pidTool.app import PIDDesignerApp
+else:
+    # Normal package execution
+    from .core import tf_from_args, Requirements
+    from .design import make_grids
+    from .app import PIDDesignerApp
 
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description="PID design via computational optimization (OOP)")
