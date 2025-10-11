@@ -1,0 +1,5 @@
+pytest pidControllers/tuningTool/tests \
+  --override-ini addopts= \
+  --cov \
+  --cov-config=pidControllers/tuningTool/.coveragerc \
+  --cov-report=term-missing
