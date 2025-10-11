@@ -1,16 +1,27 @@
-# transientAnalysis/responseTool/cli.py
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 from __future__ import annotations
 import argparse
+import os
+import sys
 from pathlib import Path
 import numpy as np
 
-from .utils import parse_matrix, parse_vector
-from .app import ResponseToolApp
+# ---------- Import shim so `python cli.py` works with absolute imports ----------
+if __package__ in (None, ""):
+    pkg_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+    if pkg_root not in sys.path:
+        sys.path.insert(0, pkg_root)
+    # Absolute imports when executed as a script
+    from transientAnalysis.responseTool.utils import parse_matrix, parse_vector
+    from transientAnalysis.responseTool.app import ResponseToolApp
+else:
+    # Normal package imports
+    from .utils import parse_matrix, parse_vector
+    from .app import ResponseToolApp
 
 
 def parse_zetas_list(s: str | None) -> list[float]:
-    """Parse comma/space-separated zeta list. If empty/None, return a sensible default grid."""
     if not s:
         return [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]
     toks = [t for t in s.replace(",", " ").split() if t.strip()]
@@ -18,7 +29,6 @@ def parse_zetas_list(s: str | None) -> list[float]:
 
 
 def parse_overlay_list(s: str | None) -> list[float]:
-    """Like parse_zetas_list but empty/None returns [] (used for Plotly overlays)."""
     if not s:
         return []
     toks = [t for t in s.replace(",", " ").split() if t.strip()]
@@ -34,7 +44,6 @@ def build_parser() -> argparse.ArgumentParser:
         conflict_handler="resolve",
     )
 
-    # Shared parent so --root can appear after any subcommand as well.
     common = argparse.ArgumentParser(add_help=False)
     common.add_argument(
         "--root",
@@ -42,7 +51,6 @@ def build_parser() -> argparse.ArgumentParser:
         help="I/O root. Default: transientAnalysis/responseTool (the package dir).",
     )
 
-    # Also allow --root at top-level (before the subcommand).
     p.add_argument(
         "--root",
         default=None,
@@ -93,14 +101,11 @@ def build_parser() -> argparse.ArgumentParser:
     # D) Second-order explorer (single or sweep)
     pD = sub.add_parser("second-order", parents=[common],
                         help="Standard 2nd-order (single response or ζ-sweep)")
-    # Mode A: standard parameters
     pD.add_argument("--wn", type=float, default=None, help="Natural frequency ωn [rad/s]")
     pD.add_argument("--zeta", type=float, default=None, help="Damping ratio ζ")
     pD.add_argument("--K", type=float, default=None, help="Numerator gain K (default wn^2)")
-    # Mode B: coefficients tuple (K, a2, a1, a0)
     pD.add_argument("--coeffs", type=float, nargs=4, metavar=("K", "a2", "a1", "a0"),
                     help="Alternative: provide (K, a2, a1, a0) instead of (wn, zeta, K)")
-    # Time + plotting + sweep
     pD.add_argument("--tfinal", type=float, default=None, help="Time horizon (auto if omitted)")
     pD.add_argument("--dt", type=float, default=1e-3, help="Sample step for plotting")
     pD.add_argument("--sweep-zeta", type=str, default="",
@@ -201,14 +206,12 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if args.cmd == "second-order":
-        # Sweep if requested
         if args.sweep_zeta.strip():
             zetas = [float(z) for z in args.sweep_zeta.split(",")]
             app.second_order_sweep(wn=float(args.wn if args.wn is not None else 5.0),
                                    zetas=zetas, tfinal=args.tfinal, dt=args.dt,
                                    save_prefix=args.save_prefix)
             return 0
-        # Otherwise single run
         coeffs = tuple(args.coeffs) if args.coeffs is not None else None
         app.second_order_single(
             wn=(None if coeffs else float(args.wn) if args.wn is not None else None),
@@ -249,7 +252,12 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if args.cmd == "second-order-plotly":
-        overlay = parse_overlay_list(getattr(args, "overlay", None))
+        def _parse_overlay(s: str | None):
+            if not s:
+                return []
+            toks = [t for t in s.replace(",", " ").split() if t.strip()]
+            return [float(t) for t in toks]
+        overlay = _parse_overlay(getattr(args, "overlay", None))
         save_html = getattr(args, "save_html", "") or None
         save_png = getattr(args, "save_png", "") or None
         app.second_order_plotly_surface(
