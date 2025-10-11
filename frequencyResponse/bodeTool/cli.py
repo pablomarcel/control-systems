@@ -1,10 +1,31 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 from __future__ import annotations
-import argparse, logging
-from .apis import BodeConfig
-from .app import BodeApp
+
+import argparse
+import logging
+import os
+import sys
+
+# ---------- Import shim so `python cli.py` works with absolute imports ----------
+if __package__ in (None, ""):
+    # Running as a script from within the package folder.
+    # Add project root to sys.path (../../)
+    pkg_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+    if pkg_root not in sys.path:
+        sys.path.insert(0, pkg_root)
+    # Import absolute modules
+    from frequencyResponse.bodeTool.apis import BodeConfig
+    from frequencyResponse.bodeTool.app import BodeApp
+else:
+    # Normal package execution (e.g., `python -m frequencyResponse.bodeTool.cli`)
+    from .apis import BodeConfig
+    from .app import BodeApp
+
 
 def _level(v: int):
     return logging.DEBUG if v>=2 else (logging.INFO if v==1 else logging.INFO)
+
 
 def build_arg_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(description="Bode/Nyquist/Nichols with margins, bandwidth, resonant peak.")
@@ -25,6 +46,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     ap.add_argument("--title", default="Bode of L(s)")
     ap.add_argument("-v","--verbose", action="count", default=0)
     return ap
+
 
 def main(argv=None):
     ap = build_arg_parser()
@@ -49,6 +71,7 @@ def main(argv=None):
     print(f"Closed-loop w_bw : {result.closedloop.wb:.6g} rad/s")
     print("Hints:"); [print(" •", h) for h in result.hints]
     app.render(cfg, result)
+
 
 if __name__ == "__main__":
     main()
