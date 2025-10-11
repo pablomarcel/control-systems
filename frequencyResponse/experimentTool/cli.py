@@ -1,17 +1,38 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 from __future__ import annotations
-import os, sys, json, math
+
+import os
+import sys
 from pathlib import Path
 import click
-import numpy as np
-import control as ct
 
-from .app import ExperimentApp
-from .design import ModelSpec, ogata_7_25
-from .apis import ExperimentService
-from .io import read_csv, save_bode_csv, export_summary
-from .tools.plot_mpl import plot_bode_mpl
-from .tools.plot_plotly import plot_bode_plotly
-from .utils import set_verbose, info
+# ---------- Import shim so `python cli.py` works with absolute imports ----------
+if __package__ in (None, ""):
+    # Running as a script from frequencyResponse/experimentTool:
+    # add PROJECT ROOT (parent of 'frequencyResponse') to sys.path.
+    # __file__ = <PROJECT_ROOT>/frequencyResponse/experimentTool/cli.py
+    pkg_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+    if pkg_root not in sys.path:
+        sys.path.insert(0, pkg_root)
+
+    # Absolute imports under the top-level package
+    from frequencyResponse.experimentTool.app import ExperimentApp  # type: ignore
+    from frequencyResponse.experimentTool.design import ModelSpec, ogata_7_25  # type: ignore
+    from frequencyResponse.experimentTool.apis import ExperimentService  # type: ignore
+    from frequencyResponse.experimentTool.io import read_csv, save_bode_csv, export_summary  # type: ignore
+    from frequencyResponse.experimentTool.tools.plot_mpl import plot_bode_mpl  # type: ignore
+    from frequencyResponse.experimentTool.tools.plot_plotly import plot_bode_plotly  # type: ignore
+    from frequencyResponse.experimentTool.utils import set_verbose  # type: ignore
+else:
+    # Normal package execution
+    from .app import ExperimentApp
+    from .design import ModelSpec, ogata_7_25
+    from .apis import ExperimentService
+    from .io import read_csv, save_bode_csv, export_summary
+    from .tools.plot_mpl import plot_bode_mpl
+    from .tools.plot_plotly import plot_bode_plotly
+    from .utils import set_verbose
 
 PKG_ROOT = Path(__file__).resolve().parent
 
@@ -86,10 +107,7 @@ def run_cmd(ctx, **kwargs):
     if kwargs["ogata"]:
         spec = ogata_7_25()
     else:
-        # Resilient option lookup for K (click lowercases)
-        K_opt = kwargs.get("K", None)
-        if K_opt is None:
-            K_opt = kwargs.get("k", None)
+        K_opt = kwargs.get("K", None) or kwargs.get("k", None)
         spec = ModelSpec(
             K=(K_opt if K_opt is not None else 1.0),
             lam=(kwargs["lam"] if kwargs["lam"] is not None else 0),
@@ -164,7 +182,6 @@ def run_cmd(ctx, **kwargs):
 @click.pass_context
 def make_csv_cmd(ctx, **kwargs):
     app: ExperimentApp = ctx.obj["app"]
-    # Per-command override of delay settings
     if kwargs.get("delay_method"):
         app.delay_method = kwargs["delay_method"]
     if kwargs.get("pade_order") is not None:
@@ -173,9 +190,7 @@ def make_csv_cmd(ctx, **kwargs):
     if kwargs["ogata"]:
         spec = ogata_7_25()
     else:
-        K_opt = kwargs.get("K", None)
-        if K_opt is None:
-            K_opt = kwargs.get("k", None)
+        K_opt = kwargs.get("K", None) or kwargs.get("k", None)
         spec = ModelSpec(
             K=(K_opt if K_opt is not None else 1.0),
             lam=(kwargs["lam"] if kwargs["lam"] is not None else 0),
@@ -208,7 +223,6 @@ def make_csv_cmd(ctx, **kwargs):
 @click.pass_context
 def fit_cmd(ctx, **kwargs):
     app: ExperimentApp = ctx.obj["app"]
-    # Per-command override of delay settings
     if kwargs.get("delay_method"):
         app.delay_method = kwargs["delay_method"]
     if kwargs.get("pade_order") is not None:
