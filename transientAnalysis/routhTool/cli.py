@@ -1,9 +1,26 @@
-# transientAnalysis/routhTool/cli.py
+
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 from __future__ import annotations
+
 import argparse
+import os
+import sys
 from pathlib import Path
 
-from .app import RouthApp
+# ---------- Import shim so `python cli.py` works with absolute imports ----------
+if __package__ in (None, ""):
+    # Running as a script: add project root to sys.path and import absolute modules
+    pkg_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+    if pkg_root not in sys.path:
+        sys.path.insert(0, pkg_root)
+
+    # absolute imports from the package
+    from transientAnalysis.routhTool.app import RouthApp
+else:
+    # Normal package execution
+    from .app import RouthApp
+
 
 def _print_table(array, degrees):
     # tiny pretty printer kept local to CLI
@@ -12,6 +29,7 @@ def _print_table(array, degrees):
     for deg, row in zip(degrees, array):
         cells = " ".join(f"{c:>{colw}}" for c in row)
         print(f"s^{deg:>2} | {cells}")
+
 
 def cli(argv=None) -> int:
     ap = argparse.ArgumentParser(description="Routh array builder (numeric + symbolic).")
@@ -59,6 +77,7 @@ def cli(argv=None) -> int:
         print("  •", n)
 
     return 0
+
 
 if __name__ == "__main__":  # pragma: no cover
     raise SystemExit(cli())

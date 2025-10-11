@@ -1,0 +1,5 @@
+pytest transientAnalysis/routhTool/tests \
+  --override-ini addopts= \
+  --cov \
+  --cov-config=transientAnalysis/routhTool/.coveragerc \
+  --cov-report=term-missing
