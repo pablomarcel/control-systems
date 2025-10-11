@@ -1,0 +1,5 @@
+pytest rootLocus/compensatorTool/tests \
+  --override-ini addopts= \
+  --cov \
+  --cov-config=rootLocus/compensatorTool/.coveragerc \
+  --cov-report=term-missing
