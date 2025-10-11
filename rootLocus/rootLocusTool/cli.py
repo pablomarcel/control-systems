@@ -1,10 +1,25 @@
 from __future__ import annotations
-import click
-from .apis import RootLocusRequest, RootLocusBatchSpec
-from .app import RootLocusApp
-from .io import OutputSpec
-from .utils import make_logger
 
+# --- import shim so `python cli.py` works with absolute imports ---
+import os, sys
+if __package__ in (None, ""):
+    # When executed as a script, add project root to sys.path
+    _pkg_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+    if _pkg_root not in sys.path:
+        sys.path.insert(0, _pkg_root)
+    # Absolute imports
+    from rootLocus.rootLocusTool.apis import RootLocusRequest, RootLocusBatchSpec
+    from rootLocus.rootLocusTool.app import RootLocusApp
+    from rootLocus.rootLocusTool.io import OutputSpec
+    from rootLocus.rootLocusTool.utils import make_logger
+else:
+    # Normal package execution
+    from .apis import RootLocusRequest, RootLocusBatchSpec
+    from .app import RootLocusApp
+    from .io import OutputSpec
+    from .utils import make_logger
+
+import click
 
 @click.group(context_settings=dict(help_option_names=["-h", "--help"]))
 def cli():
