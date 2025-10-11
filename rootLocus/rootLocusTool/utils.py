@@ -1,15 +1,33 @@
 from __future__ import annotations
-import logging, re
+import logging, re, sys
 from typing import List, Optional
 import numpy as np
 
 def make_logger(verbose: bool) -> logging.Logger:
-    lg = logging.getLogger("rootLocusTool")
+    """
+    Returns a configured logger.
+    - Non-verbose: 'rootLocusTool' (INFO)
+    - Verbose:     'rootLocusTool.verbose' (DEBUG)
+
+    We use two distinct loggers to ensure a second call with verbose=True
+    always returns a DEBUG-level logger, regardless of prior config, while
+    also preserving the single-handler invariant on the base logger.
+    """
+    name = "rootLocusTool.verbose" if verbose else "rootLocusTool"
+    level = logging.DEBUG if verbose else logging.INFO
+
+    lg = logging.getLogger(name)
+    lg.propagate = False  # keep logs local; avoid root handler interference
+
     if not lg.handlers:
-        h = logging.StreamHandler()
+        h = logging.StreamHandler(stream=sys.stderr)  # explicit stream
         h.setFormatter(logging.Formatter("[%(levelname)s] %(message)s"))
         lg.addHandler(h)
-    lg.setLevel(logging.DEBUG if verbose else logging.INFO)
+
+    lg.setLevel(level)
+    for h in lg.handlers:
+        h.setLevel(level)
+
     return lg
 
 def parse_list(s: Optional[str]) -> List[float]:
