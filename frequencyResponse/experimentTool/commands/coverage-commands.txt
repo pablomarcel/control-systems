@@ -1,0 +1,5 @@
+pytest frequencyResponse/experimentTool/tests \
+  --override-ini addopts= \
+  --cov \
+  --cov-config=frequencyResponse/experimentTool/.coveragerc \
+  --cov-report=term-missing
