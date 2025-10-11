@@ -1,13 +1,28 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 # ---------------------------------
 # File: transientAnalysis/icTool/cli.py
 # ---------------------------------
 from __future__ import annotations
 
+import os
+import sys
 from pathlib import Path
 import click
 
-from .app import IcToolApp
-from .utils import parse_matrix, parse_vector, time_grid, parse_poly
+# ---------- Import shim so `python cli.py` works with absolute imports ----------
+if __package__ in (None, ""):
+    # Running as a script: add project root (two levels up) to sys.path
+    pkg_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+    if pkg_root not in sys.path:
+        sys.path.insert(0, pkg_root)
+    # Now absolute imports work
+    from transientAnalysis.icTool.app import IcToolApp
+    from transientAnalysis.icTool.utils import parse_matrix, parse_vector, time_grid, parse_poly
+else:
+    # Normal package execution
+    from .app import IcToolApp
+    from .utils import parse_matrix, parse_vector, time_grid, parse_poly
 
 
 @click.group(help="icTool — response to initial conditions (direct vs step-equivalent)")
