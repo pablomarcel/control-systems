@@ -1,0 +1,5 @@
+pytest pidControllers/zeroPoleTool/tests \
+  --override-ini addopts= \
+  --cov \
+  --cov-config=pidControllers/zeroPoleTool/.coveragerc \
+  --cov-report=term-missing
