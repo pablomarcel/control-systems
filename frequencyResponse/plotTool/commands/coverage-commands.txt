@@ -1,0 +1,5 @@
+pytest frequencyResponse/plotTool/tests \
+  --override-ini addopts= \
+  --cov \
+  --cov-config=frequencyResponse/plotTool/.coveragerc \
+  --cov-report=term-missing

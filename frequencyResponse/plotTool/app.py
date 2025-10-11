@@ -1,5 +1,5 @@
 from __future__ import annotations
-from dataclasses import dataclass, field, field
+from dataclasses import dataclass, field
 from .io import IOConfig
 from .utils import build_logger
 

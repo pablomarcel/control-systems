@@ -11,18 +11,14 @@ def _truthy_env(name: str) -> bool:
     return str(v).strip().lower() in ("1", "true", "yes", "on")
 
 def build_logger(name: str = "plotTool", level: Union[int, None] = logging.INFO) -> logging.Logger:
-    """
-    Create/get a logger. If PLOTTOOL_DEBUG is truthy, force DEBUG.
-    """
+    """Create/get a logger. If PLOTTOOL_DEBUG is truthy, force DEBUG."""
     log = logging.getLogger(name)
     if not log.handlers:
         h = logging.StreamHandler(sys.stdout)
         h.setFormatter(logging.Formatter("%(levelname)s: %(message)s"))
         log.addHandler(h)
-    # Default to INFO if level is None
     if level is None:
         level = logging.INFO
-    # Env override for noisy debugging
     if _truthy_env("PLOTTOOL_DEBUG"):
         level = logging.DEBUG
     log.setLevel(level)
@@ -61,17 +57,10 @@ def parse_matrix(s: str) -> np.ndarray:
     return np.array([[float(x.strip().strip('"\'')) for x in r.split(",") if x.strip()] for r in rows], float)
 
 def parse_csv_vals(s: Optional[str]) -> Optional[List[float]]:
-    """
-    Robust CSV -> floats:
-    - Accept None -> None
-    - Accept strings possibly wrapped in quotes
-    - Accept semicolons or commas
-    - Strip stray quote characters from tokens
-    """
+    """Robust CSV -> floats; accepts None, quoted strings, semicolons/commas."""
     if s is None:
         return None
     if isinstance(s, (list, tuple)):
-        # already numeric-ish
         return [float(x) for x in s]  # type: ignore[arg-type]
     s = _strip_outer_quotes(str(s)).replace(";", ",")
     toks = [t for t in s.split(",") if t.strip()]
@@ -83,14 +72,7 @@ def parse_csv_vals(s: Optional[str]) -> Optional[List[float]]:
     return out
 
 def parse_range4(arg: Optional[Union[str, Sequence[float]]]):
-    """
-    Parse a 4-value range (phase_min, phase_max, mag_min_db, mag_max_db).
-    Accepts:
-      - None -> None
-      - string with 4+ values (commas/semicolons, optional quotes) -> 4-tuple(float)
-      - list/tuple with 4+ values -> 4-tuple(float)
-    Returns None if cannot parse.
-    """
+    """Parse a 4-value range. Returns tuple or None."""
     if arg is None:
         return None
     if isinstance(arg, (list, tuple)):
@@ -100,7 +82,6 @@ def parse_range4(arg: Optional[Union[str, Sequence[float]]]):
             return (float(arg[0]), float(arg[1]), float(arg[2]), float(arg[3]))
         except Exception:
             return None
-    # string path
     s = _strip_outer_quotes(str(arg)).replace(";", ",")
     vals = [v.strip().strip('"\'' ) for v in s.split(",") if v.strip()]
     if len(vals) < 4:
