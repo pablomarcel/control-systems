@@ -1,6 +1,17 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 from __future__ import annotations
-import argparse, math
-from .app import RootLocusApp
+
+import argparse, math, os, sys
+
+# ---------- Import shim so `python cli.py` works with absolute imports ----------
+if __package__ in (None, ""):
+    pkg_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+    if pkg_root not in sys.path:
+        sys.path.insert(0, pkg_root)
+    from pidControllers.rootLocusTool.app import RootLocusApp
+else:
+    from .app import RootLocusApp
 
 def build_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(description="Root-locus (with ζ-rays) and design-point visualization")
@@ -23,12 +34,12 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--ylim", nargs=2, type=float, help="y-axis limits: ymin ymax")
     # plotting / IO
     ap.add_argument("--backend", choices=["mpl","plotly"], default="plotly")
-    ap.add_argument("--save", help="Save plot (PNG for MPL, HTML for Plotly) under ./out/")
+    ap.add_argument("--save", help="Save plot (PNG for MPL, HTML for Plotly) in ./out/ when relative")
     ap.add_argument("--title", default="Root Locus with ζ-rays")
     ap.add_argument("--no_plot", action="store_true")
     # exports + analysis
-    ap.add_argument("--export_json", help="Export summary JSON under ./out/")
-    ap.add_argument("--export_csv", help="Export detailed rows CSV under ./out/")
+    ap.add_argument("--export_json", help="Export summary JSON in ./out/ when relative")
+    ap.add_argument("--export_csv", help="Export detailed rows CSV in ./out/ when relative")
     ap.add_argument("--analyze", action="store_true")
     ap.add_argument("--settle", type=float, default=0.02)
     ap.add_argument("--precision", type=int, default=6)
@@ -51,7 +62,7 @@ def main(argv=None):
         analyze=args.analyze, settle=args.settle, precision=args.precision
     )
     # compact stdout report
-    fmt = lambda x,p=6: (f"{x:.{p}g}" if isinstance(x,(int,float)) and math.isfinite(x) else str(x))
+    fmt = lambda x,p=6: (f"{x:.{p}g}" if isinstance(x,(int,float)) and hasattr(x,'__float__') else str(x))
     print("=== Root-Locus (OOP) ===")
     print(f"a_plot={fmt(result['a_plot'])}; limits x={result['xlim']} y={result['ylim']}")
     if result.get("s_row"):

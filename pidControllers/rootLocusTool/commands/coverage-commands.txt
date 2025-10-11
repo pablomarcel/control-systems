@@ -1,0 +1,5 @@
+pytest pidControllers/rootLocusTool/tests \
+  --override-ini addopts= \
+  --cov \
+  --cov-config=pidControllers/rootLocusTool/.coveragerc \
+  --cov-report=term-missing
