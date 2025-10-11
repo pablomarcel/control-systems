@@ -1,0 +1,9 @@
+[run]
+branch = True
+source = transientAnalysis/hurwitzTool
+
+[html]
+directory = transientAnalysis/hurwitzTool/out/htmlcov
+
+[report]
+show_missing = True
