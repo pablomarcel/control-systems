@@ -23,7 +23,6 @@ python cli.py <args...>
 
 ```bash
 python cli.py --help
-python cli.py --version
 ```
 
 ---
