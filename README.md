@@ -12,7 +12,7 @@ This repository is a collection of focused, test‑driven Python packages ("tool
 
 ## Why this exists
 
-- I didn’t have a MATLAB® license — and I don't need one.
+- I didn’t have a MATLAB® license — and I don't need one (and don't want one)
 - Python’s ecosystem (NumPy, SciPy, SymPy, python‑control, etc.) can do everything the textbooks require — but it’s code‑heavy.
 - So I wrapped the hard parts into **consistent command‑line tools** with clean I/O, file conventions, and tests.
 - The result is a **drop‑in study companion** and **reproducible design lab** for modern control.
