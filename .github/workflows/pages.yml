@@ -1,0 +1,87 @@
+# .github/workflows/pages.yml
+name: Build & Publish Docs
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: "pip"
+
+      - name: Install project deps + Sphinx
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          pip install sphinx furo || pip install sphinx alabaster
+          # If your project has a pyproject.toml/setup.cfg, this will help:
+          if [ -f pyproject.toml ] || [ -f setup.cfg ] || [ -f setup.py ]; then
+            pip install -e .
+          fi
+        env:
+          PIP_DISABLE_PIP_VERSION_CHECK: 1
+
+      - name: Build all Sphinx projects under */docs
+        env:
+          # Make the source tree importable even if editable install is skipped
+          PYTHONPATH: ${{ github.workspace }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t DOCS < <(find . -type d -name docs -maxdepth 4 | sort)
+          for D in "${DOCS[@]}"; do
+            echo "==> Building $D"
+            # -W makes warnings fail the job so we don't silently publish blanks
+            sphinx-build -b html -W --keep-going "$D" "$D/_build/html"
+          done
+
+      - name: Assemble site folder
+        shell: bash
+        run: |
+          mkdir -p _site
+          mapfile -t DOCS < <(find . -type d -name docs -maxdepth 4 | sort)
+          INDEX="_site/index.html"
+          echo '<!doctype html><meta charset="utf-8"><title>Docs</title><h1>Docs</h1><ul>' > "$INDEX"
+          for D in "${DOCS[@]}"; do
+            PKG_PATH="$(dirname "$D")"
+            DEST="_site/${PKG_PATH#./}"
+            if [ -d "$D/_build/html" ]; then
+              mkdir -p "$DEST"
+              cp -R "$D/_build/html/"* "$DEST/"
+              echo "<li><a href='${PKG_PATH#./}/'>${PKG_PATH#./}/</a></li>" >> "$INDEX"
+            fi
+          done
+          echo '</ul>' >> "$INDEX"
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
