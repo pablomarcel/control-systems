@@ -1,0 +1,9 @@
+[run]
+branch = True
+source = modelingSystems/mimoTool
+
+[html]
+directory = modelingSystems/mimoTool/out/htmlcov
+
+[report]
+show_missing = True

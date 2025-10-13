@@ -1,0 +1,5 @@
+pytest modelingSystems/canonicalTool/tests \
+  --override-ini addopts= \
+  --cov \
+  --cov-config=modelingSystems/canonicalTool/.coveragerc \
+  --cov-report=term-missing
