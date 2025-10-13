@@ -1,0 +1,9 @@
+[run]
+branch = True
+source = modelingSystems/canonicalTool
+
+[html]
+directory = modelingSystems/canonicalTool/out/htmlcov
+
+[report]
+show_missing = True
