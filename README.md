@@ -1,20 +1,21 @@
-# Modern Control App (Python) — CLI‑First Study & Design Suite
+# Modern Control App — Python CLI‑First Study & Design Suite
 
-> **Mission:** prove you can learn, reproduce, and *do* continuous‑time control systems **without MATLAB®/Simulink®** — using Python, a clean CLI workflow, and open libraries.
+> **Mission:** learn, reproduce, and *do* continuous‑time control systems **without MATLAB®/Simulink®** — using Python, a clean CLI workflow, and open libraries.
 
-This repository is a collection of focused, test‑driven Python packages ("tools") that replicate and extend the core workflows from **Ogata, *Modern Control Engineering* (5th ed.)** — plus adjacent topics. Every package ships with a friendly **CLI**, example inputs, and a **RUNS.md** full of copy‑paste commands. No notebooks required, no proprietary stack needed.
+This repository is a collection of focused, test‑driven Python packages that replicate and extend the core workflows from **Ogata, *Modern Control Engineering* (5th ed.)** — plus adjacent topics. Every package ships with a friendly **CLI**, example inputs, and a **RUNS.md** full of copy‑paste commands. No notebooks required, no proprietary stack needed.
 
 <p align="center">
-  <em>“MATLAB® is not a skill — control engineering is.”</em>
+  <em>“MATLAB® is not a skill”</em>
 </p>
 
 ---
 
 ## Why this exists
 
-- I didn’t have a MATLAB® license — and I don't need one (and don't want one)
+- I didn’t have a MATLAB® license, I don't need one, and I don't want one.
+- Ogata drowns you in matrices, so I had to create a computational tool to provide some relief.
 - Python’s ecosystem (NumPy, SciPy, SymPy, python‑control, etc.) can do everything the textbooks require — but it’s code‑heavy.
-- So I wrapped the hard parts into **consistent command‑line tools** with clean I/O, file conventions, and tests.
+- I wrapped the hard parts into **consistent command‑line tools** with clean I/O, file conventions, and tests.
 - The result is a **drop‑in study companion** and **reproducible design lab** for modern control.
 
 > **Trademark note:** MATLAB® and Simulink® are registered trademarks of The MathWorks, Inc. This project is not affiliated with or endorsed by MathWorks.
