@@ -24,6 +24,16 @@ This repository is a collection of focused, test‑driven Python packages that r
 
 ## What’s inside — ordered like Ogata’s book
 
+[![Docs](https://img.shields.io/badge/docs-GitHub%20Pages-3D74F7.svg)](https://pablomarcel.github.io/control-modernControl/)
+[![Build & Publish Docs](https://github.com/pablomarcel/control-modernControl/actions/workflows/pages.yml/badge.svg)](https://github.com/pablomarcel/control-modernControl/actions/workflows/pages.yml)
+
+## Documentation
+
+Live docs: **https://pablomarcel.github.io/control-modernControl/**
+
+Per-package quick links:
+- [frequencyResponse/bodeTool](https://pablomarcel.github.io/control-modernControl/frequencyResponse/bodeTool)
+
 Each subfolder is a cohesive package with its own CLI, tests, and a RUNS.md. The list below follows the **book chapter order** (PyCharm may display folders alphabetically).
 
 ### Chapter 1 — Introduction to Control Systems
