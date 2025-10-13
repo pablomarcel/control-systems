@@ -12,7 +12,7 @@ This repository is a collection of focused, test‑driven Python packages that r
 
 ## Why this exists
 
-- I didn’t have a MATLAB® license, I don't need one, and I don't want one.
+- I don’t have a MATLAB® license, I don't need one, and I don't want one.
 - Ogata drowns you in matrices, so I had to create a computational tool to provide some relief.
 - Python’s ecosystem (NumPy, SciPy, SymPy, python‑control, etc.) can do everything the textbooks require — but it’s code‑heavy.
 - I wrapped the hard parts into **consistent command‑line tools** with clean I/O, file conventions, and tests.
