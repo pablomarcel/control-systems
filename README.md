@@ -12,7 +12,7 @@ This repository is a collection of focused, test‑driven Python packages that r
 
 ## Why this exists
 
-- I don’t have a MATLAB® license, I don't need one, and I don't want one.
+- I don’t have a MATLAB® license and I don't need one.
 - Ogata drowns you in matrices, so I had to create a computational tool to provide some relief.
 - Python’s ecosystem (NumPy, SciPy, SymPy, python‑control, etc.) can do everything the textbooks require — but it’s code‑heavy.
 - I wrapped the hard parts into **consistent command‑line tools** with clean I/O, file conventions, and tests.
@@ -31,30 +31,49 @@ This repository is a collection of focused, test‑driven Python packages that r
 
 Live docs: **https://pablomarcel.github.io/control-modernControl/**
 
-Per-package quick links:
-- [frequencyResponse/bodeTool](https://pablomarcel.github.io/control-modernControl/frequencyResponse/bodeTool)
+**Per-package quick links (published):**
+- [frequencyResponse/bodeTool](https://pablomarcel.github.io/control-modernControl/frequencyResponse/bodeTool/) — Bode engine, margins, design helpers
+- [modelingSystems/canonicalTool](https://pablomarcel.github.io/control-modernControl/modelingSystems/canonicalTool/) — Controllable/observable canonical transforms
+- [modelingSystems/converterTool](https://pablomarcel.github.io/control-modernControl/modelingSystems/converterTool/) — Transfer-function ⇄ state-space conversions
+- [modelingSystems/mimoTool](https://pablomarcel.github.io/control-modernControl/modelingSystems/mimoTool/) — MIMO interconnections & assembly
+- [modelingSystems/systemTool](https://pablomarcel.github.io/control-modernControl/modelingSystems/systemTool/) — SISO system builder & scaffolding
 
 Each subfolder is a cohesive package with its own CLI, tests, and a RUNS.md. The list below follows the **book chapter order** (PyCharm may display folders alphabetically).
 
 ### Chapter 1 — Introduction to Control Systems
 ```
-intro/
-  __init__.py                 # (WIP) scaffolding; CLI helpers to come
+modelingSystems/
+  laplaceTool/                # WIP
 ```
 *Status:* package scaffolding in place; short descriptions TBD as tools land.
 
 ### Chapter 2 — Mathematical Modeling of Control Systems
-### Chapter 3 — Mathematical Modeling of Mechanical & Electrical Systems
-### Chapter 4 — Modeling of Fluid & Thermal Systems
 ```
 modelingSystems/
-  __init__.py                 # (WIP) system‑level model builders
+  canonicalTool/              # Controllable, observable canonical form transforms
+  converterTool/              # Transfer↔state minimal realization conversions toolkit
+  mimoTool/                   # MIMO interconnections, assembly, coupling utilities
+  systemTool/                 # SISO system builder and scaffolding
+```
+*Status:* SISO systems, MIMO systems.
 
+### Chapter 3 — Mathematical Modeling of Mechanical & Electrical Systems
+```
 modelingMechanical/
-  __init__.py                 # (WIP) mass‑spring‑damper, gears, shafts
+  canonicalTool/              # Controllable, observable canonical form transforms
+  converterTool/              # Transfer↔state minimal realization conversions toolkit
+  mimoTool/                   # MIMO interconnections, assembly, coupling utilities
+  systemTool/                 # SISO system builder and scaffolding
+```
+*Status:* package scaffolding in place; short descriptions TBD as tools land.
 
+### Chapter 4 — Modeling of Fluid & Thermal Systems
+```
 modelingFluid/
-  __init__.py                 # (WIP) tanks, pneumatic/hydraulic, thermal
+  canonicalTool/              # Controllable, observable canonical form transforms
+  converterTool/              # Transfer↔state minimal realization conversions toolkit
+  mimoTool/                   # MIMO interconnections, assembly, coupling utilities
+  systemTool/                 # SISO system builder and scaffolding
 ```
 *Status:* sub‑packages will grow to mirror Ch.2–4 examples (transfer functions, state space, linearization).
 
