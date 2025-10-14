@@ -1,0 +1,9 @@
+[run]
+branch = True
+source = modelingSystems/systemTool
+
+[html]
+directory = modelingSystems/systemTool/out/htmlcov
+
+[report]
+show_missing = True
