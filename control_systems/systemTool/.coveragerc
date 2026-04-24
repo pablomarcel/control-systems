@@ -1,9 +1,9 @@
 [run]
 branch = True
-source = modelingSystems/systemTool
+source = control_systems/systemTool
 
 [html]
-directory = modelingSystems/systemTool/out/htmlcov
+directory = control_systems/systemTool/out/htmlcov
 
 [report]
 show_missing = True

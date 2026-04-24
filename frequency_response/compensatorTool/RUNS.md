@@ -544,3 +544,10 @@ python cli.py --mode lag \
 ### Notes
 - If you need to **read** config/plant files later, place them under `frequencyResponse/compensatorTool/in/` and point the corresponding flags to that path.
 - If running in a headless CI environment for Matplotlib, add `--no_show` and rely on saved files under `out/`.
+
+### Sphinx
+
+python -m frequency_response.compensatorTool.cli sphinx-skel frequency_response/compensatorTool/docs
+python -m sphinx -b html docs docs/_build/html
+open docs/_build/html/index.html
+sphinx-autobuild docs docs/_build/html

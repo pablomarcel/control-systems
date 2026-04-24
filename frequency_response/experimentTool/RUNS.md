@@ -137,3 +137,10 @@ python cli.py fit --help
 - Nonlinear refinement (`--refine`) requires SciPy.
 
 Happy identifying! 🔧📈
+
+### Sphinx
+
+python -m frequency_response.experimentTool.cli sphinx-skel frequency_response/experimentTool/docs
+python -m sphinx -b html docs docs/_build/html
+open docs/_build/html/index.html
+sphinx-autobuild docs docs/_build/html

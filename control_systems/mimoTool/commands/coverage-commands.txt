@@ -1,5 +1,5 @@
-pytest modelingSystems/mimoTool/tests \
+pytest control_systems/mimoTool/tests \
   --override-ini addopts= \
   --cov \
-  --cov-config=modelingSystems/mimoTool/.coveragerc \
+  --cov-config=control_systems/mimoTool/.coveragerc \
   --cov-report=term-missing

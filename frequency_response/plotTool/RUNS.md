@@ -322,3 +322,10 @@ python cli.py \
 
 ### Version glimpse (from debug)
 `numpy`, `python-control`, `matplotlib`, backend, and `plotly` versions appear when `PLOTTOOL_DEBUG=1`.
+
+### Sphinx
+
+python -m frequency_response.plotTool.cli sphinx-skel frequency_response/plotTool/docs
+python -m sphinx -b html docs docs/_build/html
+open docs/_build/html/index.html
+sphinx-autobuild docs docs/_build/html

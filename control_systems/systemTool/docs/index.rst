@@ -1,6 +1,6 @@
-.. modelingSystems.systemTool documentation master file
+.. control_systems.systemTool documentation master file
 
-Welcome to modelingSystems.systemTool's docs!
+Welcome to control_systems.systemTool's docs!
 ==============================================
 
 .. toctree::

@@ -1,19 +1,19 @@
 API Reference
 =============
 
-.. automodule:: frequencyResponse.bodeTool.app
+.. automodule:: frequency_response.bodeTool.app
    :members:
    :undoc-members:
 
-.. automodule:: frequencyResponse.bodeTool.apis
+.. automodule:: frequency_response.bodeTool.apis
    :members:
    :undoc-members:
-.. automodule:: frequencyResponse.bodeTool.core
+.. automodule:: frequency_response.bodeTool.core
    :members:
    :undoc-members:
-.. automodule:: frequencyResponse.bodeTool.io
+.. automodule:: frequency_response.bodeTool.io
    :members:
    :undoc-members:
-.. automodule:: frequencyResponse.bodeTool.utils
+.. automodule:: frequency_response.bodeTool.utils
    :members:
    :undoc-members:

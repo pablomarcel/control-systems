@@ -1,5 +1,5 @@
-pytest modelingSystems/converterTool/tests \
+pytest control_systems/converterTool/tests \
   --override-ini addopts= \
   --cov \
-  --cov-config=modelingSystems/converterTool/.coveragerc \
+  --cov-config=control_systems/converterTool/.coveragerc \
   --cov-report=term-missing

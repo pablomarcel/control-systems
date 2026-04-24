@@ -1,6 +1,6 @@
-.. modelingSystems.canonicalTool documentation master file
+.. control_systems.canonicalTool documentation master file
 
-Welcome to modelingSystems.canonicalTool's docs!
+Welcome to control_systems.canonicalTool's docs!
 =================================================
 
 .. toctree::

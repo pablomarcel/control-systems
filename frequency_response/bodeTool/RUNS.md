@@ -114,3 +114,10 @@ python cli.py --fnum "10" --fden "s (s/5 + 1) (s/50 + 1)" --hgain 1 --hpoles "-2
 ### Notes
 - Paths in this doc assume you are inside `frequencyResponse/bodeTool/` and use `../out` for outputs.
 - To revert to the old style (run from repo root): `python -m frequencyResponse.bodeTool.cli ...`
+
+### Sphinx
+
+python -m frequency_response.bodeTool.cli sphinx-skel frequency_response/bodeTool/docs
+python -m sphinx -b html docs docs/_build/html
+open docs/_build/html/index.html
+sphinx-autobuild docs docs/_build/html
