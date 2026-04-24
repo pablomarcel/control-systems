@@ -1,7 +1,8 @@
 # apis.py
 from __future__ import annotations
+
 from dataclasses import dataclass, field
-from typing import Optional, Dict, Any, List
+from typing import Any, Dict, List, Optional
 
 
 # ------------------------------- Plant ----------------------------------------
@@ -10,13 +11,14 @@ class PlantSpec:
     """
     Declarative specification for the plant model.
 
-    All fields are optional; exactly one of the input representations should be provided:
-      • tf_expr: safe rational expression in 's' (e.g., "1/(s*(s+1)*(s+2))")
-      • num/den: coefficient vectors as strings (comma/space separated), e.g., "1" / "1, 1, 2"
-      • z/p/k:   ZPK representation as strings (comma/space separated)
-      • A/B/C/D: State-space matrices as semicolon/comma separated rows, e.g., "0,1; -2,-3"
-      • params:  parameter dictionary as "K=4,T=0.2" for use in tf_expr parsing
+    Provide exactly one plant representation: a transfer-function expression,
+    numerator and denominator coefficients, zero-pole-gain data, or state-space
+    matrices.
+
+    The params field can provide named constants for transfer-function parsing,
+    using a string such as "K=4,T=0.2".
     """
+
     tf_expr: Optional[str] = None
     num: Optional[str] = None
     den: Optional[str] = None
@@ -30,18 +32,18 @@ class PlantSpec:
     params: str = ""
 
 
-# ---------------------------- Lag–Lead (existing) -----------------------------
+# ---------------------------- Lag-Lead (existing) -----------------------------
 @dataclass(slots=True)
 class DesignOptions:
     """
-    Options controlling lag–lead design.
+    Options controlling lag-lead compensator design.
 
-    If ogata_7_28 is True, a preset design is used (Ogata Example 7-28).
-    Otherwise the designer can:
-      • Auto-scale gain to meet Kv (type-1 systems) and/or
-      • Auto-place lead/lag from pm_target, pm_allow, wc_hint, r_lead, r_lag
-      • Or accept manual lead/lag parameters (alpha/beta or wz/wp pairs).
+    If ogata_7_28 is true, the Ogata Example 7-28 preset design is used.
+    Otherwise, the designer can auto-scale gain to meet Kv for type-1 systems,
+    auto-place lead and lag elements from the phase-margin target, or accept
+    manual lead and lag parameters.
     """
+
     Kv: Optional[float] = None
     pm_target: Optional[float] = None
     pm_allow: float = 5.0
@@ -61,12 +63,13 @@ class DesignOptions:
 @dataclass(slots=True)
 class PlotOptions:
     """
-    Plotting, export, and UX options.
+    Plotting, export, and runtime options.
 
-    Lists (nichols_Mdb, nichols_Ndeg, nyquist_M, nyquist_marks) are populated by the CLI
-    from either space-separated or comma-separated inputs. If None, the default behavior
-    for that feature applies (e.g., no extra contours).
+    The numeric list fields can be populated by the CLI from space-separated or
+    comma-separated inputs. If a list field is None, the default behavior for
+    that feature applies.
     """
+
     backend: str = "mpl"  # "mpl" or "plotly"
     plots: str = "bode,nyquist,nichols,step,ramp"
     ogata_axes: bool = False
@@ -79,9 +82,9 @@ class PlotOptions:
     nyquist_marks: Optional[List[float]] = None
 
     # File outputs
-    save: Optional[str] = None           # e.g., ".../out/run_{kind}.html|png"
-    save_img: Optional[str] = None       # static images when using plotly+kaleido
-    export_json: Optional[str] = None    # path to design pack JSON
+    save: Optional[str] = None  # e.g., ".../out/run_{kind}.html|png"
+    save_img: Optional[str] = None  # static images when using plotly+kaleido
+    export_json: Optional[str] = None  # path to design pack JSON
     export_csv_prefix: Optional[str] = None  # prefix for CSV exports
 
     # Runtime behavior
@@ -92,7 +95,8 @@ class PlotOptions:
 
 @dataclass(slots=True)
 class FrequencyGrid:
-    """Frequency grid used for frequency response computations and plots."""
+    """Frequency grid used for frequency-response computations and plots."""
+
     wmin: float = 1e-3
     wmax: float = 1e3
     wnum: int = 2000
@@ -100,7 +104,8 @@ class FrequencyGrid:
 
 @dataclass(slots=True)
 class LagLeadDesignSpec:
-    """Complete specification for a lag–lead design and visualization run."""
+    """Complete specification for a lag-lead design and visualization run."""
+
     plant: PlantSpec
     design: DesignOptions
     plot: PlotOptions = field(default_factory=PlotOptions)
@@ -110,39 +115,41 @@ class LagLeadDesignSpec:
 @dataclass(slots=True)
 class LagLeadDesignResult:
     """
-    Output of a lag–lead design and visualization run.
+    Output of a lag-lead design and visualization run.
 
-    pack:  JSON-serializable dictionary with margins, design parameters, CL poles/zeros, etc.
-    files: paths to any artifacts written to disk (plots, JSON, CSV).
+    The pack field contains JSON-serializable design results. The files field
+    contains paths to artifacts written to disk.
     """
+
     pack: Dict[str, Any]
     files: List[str]
 
 
 # ------------------------------- Lead-only ------------------------------------
-# These mirror the fields used by lead.py (manual α/T/Kc or automatic PM-based multi-stage).
 @dataclass(slots=True)
 class LeadDesignOptions:
     """
     Options for the lead-only designer.
 
-    Either provide (alpha & T) for a manual single-stage, or set pm_target for
-    automatic one/multi-stage design. Kv can optionally auto-scale plant gain
-    (type-1 only) before the lead design.
+    A manual single-stage design can be requested with alpha and T. Automatic
+    one-stage or multi-stage design can be requested with pm_target. Kv can
+    optionally auto-scale plant gain for type-1 systems before lead design.
     """
+
     Kv: Optional[float] = None
     pm_target: Optional[float] = None
     pm_add: float = 5.0
     stages: int = 1
-    phi_split: Optional[str] = None  # e.g., "60,40" to split φ across 2 stages
-    alpha: Optional[float] = None    # manual single-stage
-    T: Optional[float] = None        # manual single-stage
-    Kc: Optional[float] = None       # optional manual gain when alpha/T given
+    phi_split: Optional[str] = None  # e.g., "60,40" to split phi across 2 stages
+    alpha: Optional[float] = None  # manual single-stage
+    T: Optional[float] = None  # manual single-stage
+    Kc: Optional[float] = None  # optional manual gain when alpha/T given
 
 
 @dataclass(slots=True)
 class LeadDesignSpec:
     """Complete specification for a lead-only design and visualization run."""
+
     plant: PlantSpec
     design: LeadDesignOptions
     plot: PlotOptions = field(default_factory=PlotOptions)
@@ -154,36 +161,38 @@ class LeadDesignResult:
     """
     Output of a lead-only design and visualization run.
 
-    pack:  JSON-serializable dictionary with margins, design parameters, etc.
-    files: paths to any artifacts written to disk (plots, JSON, CSV).
+    The pack field contains JSON-serializable design results. The files field
+    contains paths to artifacts written to disk.
     """
+
     pack: Dict[str, Any]
     files: List[str]
 
 
 # ------------------------------- Lag-only -------------------------------------
-# Mirrors the options used by lag.py (manual β/T/Kc or PM-based automatic design).
 @dataclass(slots=True)
 class LagDesignOptions:
     """
     Options for the lag-only designer.
 
-    Either provide (beta & T) for a manual single-stage, or set pm_target for
-    automatic design using the phase method. Kv can optionally auto-scale plant
-    gain (type-1 only) before the lag design.
+    A manual single-stage design can be requested with beta and T. Automatic
+    design can be requested with pm_target. Kv can optionally auto-scale plant
+    gain for type-1 systems before lag design.
     """
+
     Kv: Optional[float] = None
     pm_target: Optional[float] = None
     pm_add: float = 8.0
     w_ratio_z: float = 10.0
-    beta: Optional[float] = None     # manual single-stage (β > 1)
-    T: Optional[float] = None        # manual single-stage (wz = 1/T)
-    Kc: Optional[float] = None       # optional manual gain (default 1.0 in engine)
+    beta: Optional[float] = None  # manual single-stage, beta > 1
+    T: Optional[float] = None  # manual single-stage, wz = 1/T
+    Kc: Optional[float] = None  # optional manual gain, default 1.0 in engine
 
 
 @dataclass(slots=True)
 class LagDesignSpec:
     """Complete specification for a lag-only design and visualization run."""
+
     plant: PlantSpec
     design: LagDesignOptions
     plot: PlotOptions = field(default_factory=PlotOptions)
@@ -195,8 +204,9 @@ class LagDesignResult:
     """
     Output of a lag-only design and visualization run.
 
-    pack:  JSON-serializable dictionary with margins, design parameters, etc.
-    files: paths to any artifacts written to disk (plots, JSON, CSV).
+    The pack field contains JSON-serializable design results. The files field
+    contains paths to artifacts written to disk.
     """
+
     pack: Dict[str, Any]
     files: List[str]
