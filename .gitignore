@@ -91,18 +91,40 @@ Thumbs.db
 # Project-specific artifacts
 # ----------------------------
 # Rotation app outputs (keep inputs under rotation/in tracked)
-rotation/out/
-introduction/out/
-# If other modules later mirror this pattern, this catches their out dirs at top-level
-acceleration/out/
-angular/out/
-applied/out/
-control/out/
-forward/out/
-inverse/out/
-motion/out/
-orientation/out/
-path/out/
-robot/out/
-time/out/
-velocity/out/
+control_systems/canonicalTool/out
+control_systems/converterTool/out
+control_systems/mimoTool/out
+control_systems/systemTool/out
+frequency_response/bodeTool/out
+frequency_response/compensatorTool/out
+frequency_response/experimentTool/out
+frequency_response/plotTool/out
+pid_controllers/pidTool/out
+pid_controllers/rootLocusTool/out
+pid_controllers/tuningTool/out
+pid_controllers/zeroPoleTool/out
+root_locus_analysis/compensatorTool/out
+root_locus_analysis/rootLocusTool/out
+root_locus_analysis/systemResponseTool/out
+state_space_analysis/canonicalTool/out
+state_space_analysis/converterTool/out
+state_space_analysis/mimoTool/out
+state_space_analysis/stateRepTool/out
+state_space_analysis/stateSolnTool/out
+state_space_analysis/stateTool/out
+state_space_analysis/stateTransTool/out
+root_locus_design/controllerTool/out
+root_locus_design/gainMatrixTool/out
+root_locus_design/lqrTool/out
+root_locus_design/minOrdTfTool/out
+root_locus_design/minOrdTool/out
+root_locus_design/observerGainMatrixTool/out
+root_locus_design/observerStatePlotTool/out
+root_locus_design/regulatorTool/out
+root_locus_design/robustTool/out
+root_locus_design/servoTool/out
+root_locus_design/statePlotsTool/out
+transient_analysis/hurwitzTool/out
+transient_analysis/icTool/out
+transient_analysis/responseTool/out
+transient_analysis/routhTool/out
