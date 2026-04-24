@@ -1,4 +1,4 @@
-.. modelingSystems.converterTool documentation master file
+.. control_systems.converterTool documentation master file
 
 Welcome to converterTool's docs!
 ================================

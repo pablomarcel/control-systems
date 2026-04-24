@@ -1,6 +1,6 @@
-.. frequencyResponse.bodeTool documentation master file
+.. frequency_response.bodeTool documentation master file
 
-Welcome to frequencyResponse.bodeTool's docs!
+Welcome to frequency_response.bodeTool's docs!
 =============================================
 
 .. toctree::

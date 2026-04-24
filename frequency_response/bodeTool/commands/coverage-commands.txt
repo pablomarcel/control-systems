@@ -1,5 +1,5 @@
-pytest frequencyResponse/bodeTool/tests \
+pytest frequency_response/bodeTool/tests \
   --override-ini addopts= \
   --cov \
-  --cov-config=frequencyResponse/bodeTool/.coveragerc \
+  --cov-config=frequency_esponse/bodeTool/.coveragerc \
   --cov-report=term-missing

@@ -1,6 +1,6 @@
-.. modelingSystems.mimoTool documentation
+.. control_systems.mimoTool documentation
 
-Welcome to modelingSystems.mimoTool's docs!
+Welcome to control_systems.mimoTool's docs!
 ===========================================
 
 .. toctree::

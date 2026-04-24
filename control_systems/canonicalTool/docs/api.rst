@@ -1,19 +1,19 @@
 API Reference
 =============
 
-.. automodule:: modelingSystems.canonicalTool.app
+.. automodule:: control_systems.canonicalTool.app
    :members:
    :undoc-members:
 
-.. automodule:: modelingSystems.canonicalTool.apis
+.. automodule:: control_systems.canonicalTool.apis
    :members:
    :undoc-members:
-.. automodule:: modelingSystems.canonicalTool.core
+.. automodule:: control_systems.canonicalTool.core
    :members:
    :undoc-members:
-.. automodule:: modelingSystems.canonicalTool.io
+.. automodule:: control_systems.canonicalTool.io
    :members:
    :undoc-members:
-.. automodule:: modelingSystems.canonicalTool.utils
+.. automodule:: control_systems.canonicalTool.utils
    :members:
    :undoc-members:

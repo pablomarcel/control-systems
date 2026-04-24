@@ -1,9 +1,9 @@
 [run]
 branch = True
-source = modelingSystems/converterTool
+source = control_systems/converterTool
 
 [html]
-directory = modelingSystems/converterTool/out/htmlcov
+directory = control_systems/converterTool/out/htmlcov
 
 [report]
 show_missing = True

@@ -1,9 +1,9 @@
 [run]
 branch = True
-source = frequencyResponse/compensatorTool
+source = frequency_response/compensatorTool
 
 [html]
-directory = frequencyResponse/compensatorTool/out/htmlcov
+directory = frequency_response/compensatorTool/out/htmlcov
 
 [report]
 show_missing = True

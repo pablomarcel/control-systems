@@ -1,19 +1,19 @@
 API Reference
 =============
 
-.. automodule:: modelingSystems.converterTool.app
+.. automodule:: control_systems.converterTool.app
    :members:
    :undoc-members:
 
-.. automodule:: modelingSystems.converterTool.apis
+.. automodule:: control_systems.converterTool.apis
    :members:
    :undoc-members:
-.. automodule:: modelingSystems.converterTool.core
+.. automodule:: control_systems.converterTool.core
    :members:
    :undoc-members:
-.. automodule:: modelingSystems.converterTool.io
+.. automodule:: control_systems.converterTool.io
    :members:
    :undoc-members:
-.. automodule:: modelingSystems.converterTool.design
+.. automodule:: control_systems.converterTool.design
    :members:
    :undoc-members:

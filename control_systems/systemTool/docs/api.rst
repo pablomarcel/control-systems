@@ -1,26 +1,26 @@
 API Reference
 =============
 
-.. automodule:: modelingSystems.systemTool.app
+.. automodule:: control_systems.systemTool.app
    :members:
    :undoc-members:
 
-.. automodule:: modelingSystems.systemTool.apis
+.. automodule:: control_systems.systemTool.apis
    :members:
    :undoc-members:
 
-.. automodule:: modelingSystems.systemTool.core
+.. automodule:: control_systems.systemTool.core
    :members:
    :undoc-members:
 
-.. automodule:: modelingSystems.systemTool.io
+.. automodule:: control_systems.systemTool.io
    :members:
    :undoc-members:
 
-.. automodule:: modelingSystems.systemTool.design
+.. automodule:: control_systems.systemTool.design
    :members:
    :undoc-members:
 
-.. automodule:: modelingSystems.systemTool.utils
+.. automodule:: control_systems.systemTool.utils
    :members:
    :undoc-members:

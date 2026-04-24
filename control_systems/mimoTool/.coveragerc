@@ -1,9 +1,9 @@
 [run]
 branch = True
-source = modelingSystems/mimoTool
+source = control_systems/mimoTool
 
 [html]
-directory = modelingSystems/mimoTool/out/htmlcov
+directory = control_systems/mimoTool/out/htmlcov
 
 [report]
 show_missing = True

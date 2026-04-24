@@ -1,5 +1,5 @@
-pytest modelingSystems/systemTool/tests \
+pytest control_systems/systemTool/tests \
   --override-ini addopts= \
   --cov \
-  --cov-config=modelingSystems/systemTool/.coveragerc \
+  --cov-config=control_systems/systemTool/.coveragerc \
   --cov-report=term-missing
