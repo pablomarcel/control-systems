@@ -324,7 +324,7 @@ pip install -U pip
 pip install -r requirements.txt
 
 # 4) Enter a package and inspect the CLI
-cd rootLocus/rootLocusTool
+cd root_locus_analysis/rootLocusTool
 python cli.py --help
 
 # 5) Use the local RUNS.md for copy-paste examples
@@ -334,7 +334,7 @@ cat RUNS.md
 Some packages also support module execution from the repository root, depending on the local import shim and package structure:
 
 ```bash
-python -m rootLocus.rootLocusTool.cli --help
+python -m root_locus_analysis.rootLocusTool.cli --help
 ```
 
 ---
@@ -344,9 +344,9 @@ python -m rootLocus.rootLocusTool.cli --help
 Run tests for a specific tool from the repository root:
 
 ```bash
-pytest rootLocus/rootLocusTool/tests \
+pytest root_locus_analysis/rootLocusTool/tests \
   --cov \
-  --cov-config=rootLocus/rootLocusTool/.coveragerc \
+  --cov-config=root_locus_analysis/rootLocusTool/.coveragerc \
   --cov-report=term-missing
 ```
 
