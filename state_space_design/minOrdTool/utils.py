@@ -1,11 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
-utils.py — Utilities for state_space_design.minOrdTool
-
-- Pretty printing for matrices and polynomials
-- SymPy ASCII pretty equations for the observer
-- JSON serialization helpers for NumPy and complex types
-"""
+"""Utility helpers for state_space_design.minOrdTool."""
 
 from __future__ import annotations
 
@@ -27,7 +21,7 @@ __all__ = [
 # ------------------------- Pretty-print helpers ------------------------- #
 
 def array2str(M: Any, precision: int = 4) -> str:
-    """Compact string for matrices/arrays with fixed precision."""
+    """Return a compact string for a matrix or array."""
     arr = np.asarray(M)
     arr = np.real_if_close(arr, tol=1e8)
     if np.iscomplexobj(arr):
@@ -47,7 +41,7 @@ def array2str(M: Any, precision: int = 4) -> str:
 
 
 def pretty_poly(coeffs: Any, var: str = "s") -> str:
-    """Human-readable polynomial from coefficient list/array (descending powers)."""
+    """Return a readable polynomial string from descending coefficients."""
     coeffs = np.asarray(coeffs, float).ravel()
     n = len(coeffs) - 1
     terms = []
@@ -65,7 +59,7 @@ def pretty_poly(coeffs: Any, var: str = "s") -> str:
 
 
 def mat_inline(M: Any, precision: int = 4) -> str:
-    """Render a matrix as a single line: [[a b ...]; [c d ...]]."""
+    """Return a one-line matrix representation for console output."""
     A = np.asarray(np.real_if_close(M, 1e8))
     if A.ndim == 1:
         A = A.reshape(1, -1)
@@ -86,10 +80,7 @@ def mat_inline(M: Any, precision: int = 4) -> str:
 
 
 def complex_list_to_pairs(zs: Any) -> list[list[float]]:
-    """
-    Convert an iterable of complex numbers into [[re, im], ...].
-    Keeps explicit imaginary parts (no tolerance collapse here).
-    """
+    """Convert complex values into real-imaginary pairs."""
     out: list[list[float]] = []
     for z in np.asarray(zs).ravel():
         zc = complex(z)
@@ -105,12 +96,7 @@ def sympy_pretty_observer(
     Dtil: np.ndarray,
     m_inputs: int | None,
 ) -> None:
-    """
-    Print:
-        et_dot = Ahat*et + Bhat*y (+ Fhat*u if present)
-        x_hat  = Ctil*et + Dtil*y
-    using SymPy's ASCII pretty printing (no 'Matrix(...)' text).
-    """
+    """Print the observer equations using SymPy pretty printing."""
     r = Ahat.shape[0]
     n = Ctil.shape[0]
     y = sp.Symbol("y")
@@ -140,29 +126,21 @@ def sympy_pretty_observer(
 # ------------------------- JSON-safe conversion ------------------------- #
 
 def _complex_to_pair(z: complex | np.complexfloating) -> float | list[float]:
-    """
-    Convert a complex scalar into either a real float (if imag ~ 0)
-    or a [re, im] pair for JSON.
-    """
+    """Convert a complex scalar into a JSON-safe value."""
     zc = complex(z)
     zr = float(np.real(zc))
     zi = float(np.imag(zc))
-    # collapse tiny imaginary parts for cleaner JSON
     if abs(zi) < 1e-12:
         return zr
     return [zr, zi]
 
 
 def _map_complex_in_container(x: Any) -> Any:
-    """
-    Recursively walk lists/tuples produced by ndarray.tolist() and convert any
-    complex-like scalar to JSON-safe via _complex_to_pair, preserving container shape.
-    """
+    """Convert complex scalar leaves inside a nested container."""
     if isinstance(x, list):
         return [_map_complex_in_container(v) for v in x]
     if isinstance(x, tuple):
         return tuple(_map_complex_in_container(v) for v in x)
-    # Scalar leaf: convert Python complex or NumPy complex scalars
     if isinstance(x, complex):
         return _complex_to_pair(x)
     try:
@@ -174,25 +152,15 @@ def _map_complex_in_container(x: Any) -> Any:
 
 
 def to_jsonable(obj: Any) -> Any:
-    """
-    Recursively convert NumPy arrays/scalars and complex values into
-    JSON-safe Python types (lists, floats, ints).
-
-    For complex ndarrays, preserve the original shape and convert elements
-    rather than forcing a 2-D representation.
-    """
-    # Fast-path for common builtins
+    """Recursively convert NumPy and complex values into JSON-safe types."""
     if obj is None or isinstance(obj, (str, int, float, bool)):
         return obj
 
-    # NumPy arrays
     if isinstance(obj, np.ndarray):
         if np.iscomplexobj(obj):
-            # Preserve shape: tolist() keeps structure; then map complex leaves.
             return _map_complex_in_container(obj.tolist())
         return obj.tolist()
 
-    # NumPy scalars
     if isinstance(obj, (np.floating, np.integer)):
         return obj.item()
     if isinstance(obj, (np.bool_,)):
@@ -200,17 +168,13 @@ def to_jsonable(obj: Any) -> Any:
     if isinstance(obj, np.complexfloating):
         return _complex_to_pair(obj)
 
-    # Python complex
     if isinstance(obj, complex):
         return _complex_to_pair(obj)
 
-    # Mappings
     if isinstance(obj, dict):
         return {k: to_jsonable(v) for k, v in obj.items()}
 
-    # Sequences
     if isinstance(obj, (list, tuple)):
         return [to_jsonable(v) for v in obj]
 
-    # Unknown types: return as-is (json.dump may still fail if not supported)
     return obj
