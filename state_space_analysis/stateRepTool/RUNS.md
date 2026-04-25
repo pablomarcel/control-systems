@@ -159,3 +159,10 @@ runroot python -m state_space_analysis.stateRepTool.cli   --tf "1/(s+1)^2"   --c
 - Canonical options: `all | controllable | observable | diagonal | jordan`
 - `--numeric/--digits` control float printing; JSON always stores exact SymPy strings.
 - Output JSON structure per form: `{A: [[...]], B: [[...]], C: [[...]], D: "…", P: [[...]]?}`
+
+### Sphinx
+
+python -m state_space_analysis.stateRepTool.cli sphinx-skel state_space_analysis/stateRepTool/docs
+python -m sphinx -b html docs docs/_build/html
+open docs/_build/html/index.html
+sphinx-autobuild docs docs/_build/html

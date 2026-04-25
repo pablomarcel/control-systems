@@ -164,3 +164,10 @@ runroot python -m state_space_analysis.converterTool.cli   --A "0 1; -1 -1" --B 
 - **Outputs**: files are written under `stateSpaceAnalysis/converterTool/out/` when `--out-prefix` is provided.
 
 Happy converting! 🚀
+
+### Sphinx
+
+python -m state_space_analysis.converterTool.cli sphinx-skel state_space_analysis/converterTool/docs
+python -m sphinx -b html docs docs/_build/html
+open docs/_build/html/index.html
+sphinx-autobuild docs docs/_build/html

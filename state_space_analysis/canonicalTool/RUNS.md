@@ -166,3 +166,10 @@ print("TF Equal:", res["tf_equal"])
 print("Has symbolic G(s):", bool(res["symbolic"]))
 PY
 ```
+
+### Sphinx
+
+python -m state_space_analysis.canonicalTool.cli sphinx-skel state_space_analysis/canonicalTool/docs
+python -m sphinx -b html docs docs/_build/html
+open docs/_build/html/index.html
+sphinx-autobuild docs docs/_build/html
