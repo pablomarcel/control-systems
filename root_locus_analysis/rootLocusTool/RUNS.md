@@ -163,3 +163,10 @@ python cli.py batch   --batch in/cases.yaml   --outdir out   --report root_locus
 ```bash
 ... --no-zeta-labels --no-wn-labels
 ```
+
+### Sphinx
+
+python -m root_locus_analysis.rootLocusTool.cli sphinx-skel root_locus_analysis/rootLocusTool/docs
+python -m sphinx -b html docs docs/_build/html
+open docs/_build/html/index.html
+sphinx-autobuild docs docs/_build/html
