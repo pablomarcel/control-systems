@@ -1,8 +1,85 @@
 # Control Systems — Python CLI-First Control Systems Study & Design Suite
 
-Control Systems is a Python-first engineering toolkit for studying, reproducing, and extending continuous-time control systems workflows. The project is organized as a collection of focused command-line packages aligned with **Ogata, _Modern Control Engineering_ (5th ed.)** and related control systems topics.
+[![Docs](https://img.shields.io/badge/docs-GitHub%20Pages-3D74F7.svg)](https://pablomarcel.github.io/control-systems/)
+[![Build & Publish Docs](https://github.com/pablomarcel/control-systems/actions/workflows/pages.yml/badge.svg)](https://github.com/pablomarcel/control-systems/actions/workflows/pages.yml)
+[![Python](https://img.shields.io/badge/python-3.13%2B-blue.svg)](https://www.python.org/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+
+Control Systems is a Python-first engineering toolkit for studying, reproducing, and extending continuous-time control systems workflows. The project is organized as a collection of focused command-line packages aligned with **Ogata, _Modern Control Engineering_ (5th ed.)** and related classical and modern control systems topics.
 
 Each package is designed to be practical, reproducible, and easy to run from the terminal. Inputs live in dedicated `in/` folders, outputs are written to `out/`, and each tool includes copy-paste runnable examples through its local `RUNS.md` file.
+
+---
+
+## Live documentation
+
+The full Sphinx documentation is published here:
+
+**https://pablomarcel.github.io/control-systems/**
+
+This is a large, package-by-package documentation site. The links below point directly to the published documentation for each tool.
+
+---
+
+## Documentation index
+
+### Control-system modeling
+
+- [control_systems/canonicalTool](https://pablomarcel.github.io/control-systems/control_systems/canonicalTool/) — Controllable and observable canonical-form transformations
+- [control_systems/converterTool](https://pablomarcel.github.io/control-systems/control_systems/converterTool/) — Transfer-function and state-space conversion workflows
+- [control_systems/mimoTool](https://pablomarcel.github.io/control-systems/control_systems/mimoTool/) — MIMO interconnections, assembly helpers, and system coupling utilities
+- [control_systems/systemTool](https://pablomarcel.github.io/control-systems/control_systems/systemTool/) — SISO system construction, representation helpers, and workflow scaffolding
+
+### Frequency response
+
+- [frequency_response/bodeTool](https://pablomarcel.github.io/control-systems/frequency_response/bodeTool/) — Bode plots, gain margin, phase margin, bandwidth, and frequency-response helpers
+- [frequency_response/compensatorTool](https://pablomarcel.github.io/control-systems/frequency_response/compensatorTool/) — Frequency-domain lead, lag, and lead-lag compensator design helpers
+- [frequency_response/experimentTool](https://pablomarcel.github.io/control-systems/frequency_response/experimentTool/) — Empirical frequency-response experiment scaffolding and FRF-oriented workflows
+- [frequency_response/plotTool](https://pablomarcel.github.io/control-systems/frequency_response/plotTool/) — Nichols, polar, and frequency-response plotting utilities
+
+### PID controllers
+
+- [pid_controllers/pidTool](https://pablomarcel.github.io/control-systems/pid_controllers/pidTool/) — PID controller forms, gain handling, and response-oriented PID workflows
+- [pid_controllers/rootLocusTool](https://pablomarcel.github.io/control-systems/pid_controllers/rootLocusTool/) — PID effects on root-locus behavior
+- [pid_controllers/tuningTool](https://pablomarcel.github.io/control-systems/pid_controllers/tuningTool/) — PID tuning workflows including rule-based controller settings
+- [pid_controllers/zeroPoleTool](https://pablomarcel.github.io/control-systems/pid_controllers/zeroPoleTool/) — Pole-zero editing, interpretation, and visualization helpers
+
+### Root-locus analysis and design
+
+- [root_locus_analysis/compensatorTool](https://pablomarcel.github.io/control-systems/root_locus_analysis/compensatorTool/) — Lead, lag, and lead-lag compensator design helpers
+- [root_locus_analysis/rootLocusTool](https://pablomarcel.github.io/control-systems/root_locus_analysis/rootLocusTool/) — Root-locus generation, gain sweeps, and pole migration analysis
+- [root_locus_analysis/systemResponseTool](https://pablomarcel.github.io/control-systems/root_locus_analysis/systemResponseTool/) — Closed-loop response comparisons for candidate gains and compensators
+
+### State-space analysis
+
+- [state_space_analysis/canonicalTool](https://pablomarcel.github.io/control-systems/state_space_analysis/canonicalTool/) — State-space canonical-form transformations
+- [state_space_analysis/converterTool](https://pablomarcel.github.io/control-systems/state_space_analysis/converterTool/) — Transfer-function/state-space conversion tools
+- [state_space_analysis/mimoTool](https://pablomarcel.github.io/control-systems/state_space_analysis/mimoTool/) — MIMO state-space assembly and analysis helpers
+- [state_space_analysis/stateRepTool](https://pablomarcel.github.io/control-systems/state_space_analysis/stateRepTool/) — State representation utilities
+- [state_space_analysis/stateSolnTool](https://pablomarcel.github.io/control-systems/state_space_analysis/stateSolnTool/) — State-transition solutions and `Phi(t)`-style workflows
+- [state_space_analysis/stateTool](https://pablomarcel.github.io/control-systems/state_space_analysis/stateTool/) — Matrix parsing, invariants, ranks, controllability, observability, and norms
+- [state_space_analysis/stateTransTool](https://pablomarcel.github.io/control-systems/state_space_analysis/stateTransTool/) — Similarity transforms and state-coordinate transformation helpers
+
+### State-space design
+
+- [state_space_design/controllerTool](https://pablomarcel.github.io/control-systems/state_space_design/controllerTool/) — Full-state feedback controller design
+- [state_space_design/gainMatrixTool](https://pablomarcel.github.io/control-systems/state_space_design/gainMatrixTool/) — Pole placement and gain-matrix workflows
+- [state_space_design/lqrTool](https://pablomarcel.github.io/control-systems/state_space_design/lqrTool/) — Linear quadratic regulator design workflows
+- [state_space_design/minOrdTfTool](https://pablomarcel.github.io/control-systems/state_space_design/minOrdTfTool/) — Minimal-order transfer-function synthesis helpers
+- [state_space_design/minOrdTool](https://pablomarcel.github.io/control-systems/state_space_design/minOrdTool/) — Minimal-order observer workflows
+- [state_space_design/observerGainMatrixTool](https://pablomarcel.github.io/control-systems/state_space_design/observerGainMatrixTool/) — Luenberger observer gain design
+- [state_space_design/observerStatePlotTool](https://pablomarcel.github.io/control-systems/state_space_design/observerStatePlotTool/) — Measured-vs-estimated state plotting
+- [state_space_design/regulatorTool](https://pablomarcel.github.io/control-systems/state_space_design/regulatorTool/) — Regulator forms, tracking structures, and integral-action workflows
+- [state_space_design/robustTool](https://pablomarcel.github.io/control-systems/state_space_design/robustTool/) — Robust-control-oriented scaffolding and design templates
+- [state_space_design/servoTool](https://pablomarcel.github.io/control-systems/state_space_design/servoTool/) — Augmented servo design and command-tracking workflows
+- [state_space_design/statePlotsTool](https://pablomarcel.github.io/control-systems/state_space_design/statePlotsTool/) — State-space plotting utilities
+
+### Transient analysis
+
+- [transient_analysis/hurwitzTool](https://pablomarcel.github.io/control-systems/transient_analysis/hurwitzTool/) — Hurwitz determinants, leading minors, and stability checks
+- [transient_analysis/icTool](https://pablomarcel.github.io/control-systems/transient_analysis/icTool/) — Initial-condition handling for state and output response workflows
+- [transient_analysis/responseTool](https://pablomarcel.github.io/control-systems/transient_analysis/responseTool/) — Step, impulse, ramp, and transient-response metrics
+- [transient_analysis/routhTool](https://pablomarcel.github.io/control-systems/transient_analysis/routhTool/) — Routh-Hurwitz arrays, sign-change checks, symbolic stability regions, and verification helpers
 
 ---
 
@@ -17,34 +94,69 @@ The project aims to provide:
 - JSON/CSV-based input and output conventions
 - Plot exports for reports, documentation, and engineering review
 - Testable package boundaries for incremental development
-- A study-friendly structure that follows the progression of a modern control systems textbook
+- A study-friendly structure that follows the progression of modern control systems topics
+- Package-level Sphinx documentation published through GitHub Pages
 
 The intent is not only to compute answers, but to make the modeling, analysis, and design process visible through structured inputs, transparent outputs, and repeatable commands.
 
 ---
 
-## Documentation
-
-[![Docs](https://img.shields.io/badge/docs-GitHub%20Pages-3D74F7.svg)](https://pablomarcel.github.io/control-modernControl/)
-[![Build & Publish Docs](https://github.com/pablomarcel/control-modernControl/actions/workflows/pages.yml/badge.svg)](https://github.com/pablomarcel/control-modernControl/actions/workflows/pages.yml)
-
-Live documentation:
-
-**https://pablomarcel.github.io/control-modernControl/**
-
-Published package documentation:
-
-- [frequencyResponse/bodeTool](https://pablomarcel.github.io/control-modernControl/frequencyResponse/bodeTool/) — Bode plots, gain/phase margins, and frequency-response helpers
-- [modelingSystems/canonicalTool](https://pablomarcel.github.io/control-modernControl/modelingSystems/canonicalTool/) — Controllable and observable canonical-form transformations
-- [modelingSystems/converterTool](https://pablomarcel.github.io/control-modernControl/modelingSystems/converterTool/) — Transfer-function and state-space conversions
-- [modelingSystems/mimoTool](https://pablomarcel.github.io/control-modernControl/modelingSystems/mimoTool/) — MIMO interconnections and system assembly utilities
-- [modelingSystems/systemTool](https://pablomarcel.github.io/control-modernControl/modelingSystems/systemTool/) — SISO system construction and workflow scaffolding
-
----
-
 ## Repository structure
 
-The repository is organized by control systems topic and roughly follows the chapter sequence from Ogata’s _Modern Control Engineering_.
+The repository is organized by control systems topic. The package folder names match the published GitHub Pages documentation paths.
+
+```text
+control_systems/
+  canonicalTool/
+  converterTool/
+  mimoTool/
+  systemTool/
+
+frequency_response/
+  bodeTool/
+  compensatorTool/
+  experimentTool/
+  plotTool/
+
+pid_controllers/
+  pidTool/
+  rootLocusTool/
+  tuningTool/
+  zeroPoleTool/
+
+root_locus_analysis/
+  compensatorTool/
+  rootLocusTool/
+  systemResponseTool/
+
+state_space_analysis/
+  canonicalTool/
+  converterTool/
+  mimoTool/
+  stateRepTool/
+  stateSolnTool/
+  stateTool/
+  stateTransTool/
+
+state_space_design/
+  controllerTool/
+  gainMatrixTool/
+  lqrTool/
+  minOrdTfTool/
+  minOrdTool/
+  observerGainMatrixTool/
+  observerStatePlotTool/
+  regulatorTool/
+  robustTool/
+  servoTool/
+  statePlotsTool/
+
+transient_analysis/
+  hurwitzTool/
+  icTool/
+  responseTool/
+  routhTool/
+```
 
 Each subfolder is intended to behave as a cohesive package with:
 
@@ -53,219 +165,36 @@ Each subfolder is intended to behave as a cohesive package with:
 - Reproducible output conventions
 - Local `RUNS.md` commands
 - Tests where applicable
-- Documentation hooks for GitHub Pages
+- Sphinx documentation hooks for GitHub Pages
 
 ---
 
-## Chapter 1 — Introduction to Control Systems
+## What the project can do
 
-```text
-intro/
-  laplaceTool/                # Work in progress
-```
+Depending on the package, the tools can support workflows such as:
 
-**Status:** package scaffolding is in place. Additional tools and examples will be added as the project expands.
-
----
-
-## Chapter 2 — Mathematical Modeling of Control Systems
-
-```text
-modelingSystems/
-  canonicalTool/              # Controllable and observable canonical-form transforms
-  converterTool/              # Transfer-function / state-space conversion toolkit
-  mimoTool/                   # MIMO interconnections, assembly, and coupling utilities
-  systemTool/                 # SISO system builder and scaffolding
-```
-
-These tools support the construction and transformation of basic control system representations, including transfer functions, state-space models, canonical forms, and multi-input/multi-output interconnections.
-
-**Current focus:** SISO modeling, MIMO assembly, canonical transformations, and representation conversion.
+- Building transfer-function and state-space representations
+- Converting between transfer functions and state-space forms
+- Constructing canonical forms
+- Assembling MIMO systems
+- Computing transient responses
+- Extracting step-response metrics
+- Building Routh arrays and Hurwitz determinant checks
+- Generating root-locus plots
+- Comparing closed-loop candidate gains
+- Designing lead, lag, and lead-lag compensators
+- Generating Bode, Nichols, and polar plots
+- Estimating gain margin, phase margin, and bandwidth
+- Tuning PID controllers
+- Designing state-feedback controllers
+- Computing observer gains
+- Building regulator and servo configurations
+- Solving LQR design cases
+- Exporting plots, tables, JSON manifests, and CSV data
 
 ---
 
-## Chapter 3 — Mathematical Modeling of Mechanical and Electrical Systems
-
-```text
-modelingMechanical/
-  canonicalTool/              # Controllable and observable canonical-form transforms
-  converterTool/              # Transfer-function / state-space conversion toolkit
-  mimoTool/                   # MIMO interconnections, assembly, and coupling utilities
-  systemTool/                 # SISO system builder and scaffolding
-```
-
-This area is intended for physical-system modeling workflows, including mechanical and electrical examples that can be reduced to transfer-function or state-space form.
-
-**Status:** package scaffolding is in place. The structure mirrors the modeling tools used in Chapter 2 so physical-system examples can share consistent CLI and I/O conventions.
-
----
-
-## Chapter 4 — Modeling of Fluid and Thermal Systems
-
-```text
-modelingFluid/
-  canonicalTool/              # Controllable and observable canonical-form transforms
-  converterTool/              # Transfer-function / state-space conversion toolkit
-  mimoTool/                   # MIMO interconnections, assembly, and coupling utilities
-  systemTool/                 # SISO system builder and scaffolding
-```
-
-This section is intended for fluid and thermal systems modeled as dynamic systems, including transfer-function construction, state-space representation, and linearized system analysis.
-
-**Status:** package scaffolding is in place. Future development will extend the examples and utilities for fluid, thermal, and related physical domains.
-
----
-
-## Chapter 5 — Transient and Steady-State Response Analyses
-
-```text
-transientAnalysis/
-  hurwitzTool/                # Hurwitz minors and Lienard-Chipart checks
-  icTool/                     # Initial-condition handling for x(0) and y(0+)
-  responseTool/               # Step, impulse, ramp responses and response metrics
-  routhTool/                  # Routh-Hurwitz table, crossings, and stability checks
-```
-
-These tools support response analysis and stability checking, including classical transient response specifications and algebraic stability tests.
-
-Expected outputs include:
-
-- Step, impulse, and ramp response data
-- Rise time, settling time, overshoot, and steady-state error estimates
-- Routh-Hurwitz tables
-- Hurwitz determinant checks
-- CSV/JSON exports and plots where applicable
-
----
-
-## Chapter 6 — Root-Locus Analysis and Design
-
-```text
-rootLocus/
-  rootLocusTool/              # Root-locus generation and analysis
-  compensatorTool/            # Lead, lag, and lead-lag compensator design helpers
-  systemResponseTool/         # Closed-loop responses for candidate gains
-```
-
-The root-locus tools are intended for classical control design workflows, including pole migration, gain selection, compensator placement, and closed-loop response comparison.
-
-Expected outputs include:
-
-- Root-locus plots
-- Candidate gain tables
-- Pole locations
-- Compensator parameters
-- Closed-loop response comparisons
-- PNG, HTML, CSV, and JSON artifacts where supported
-
----
-
-## Chapter 7 — Frequency-Response Analysis and Design
-
-```text
-frequencyResponse/
-  bodeTool/                   # Bode plots, margins, bandwidth, and templates
-  plotTool/                   # Nichols and polar plot helpers
-  compensatorTool/            # Frequency-domain lead/lag design helpers
-  experimentTool/             # Work in progress: empirical FRF helpers
-```
-
-These packages support classical frequency-response analysis and design workflows.
-
-Expected outputs include:
-
-- Bode plots
-- Gain margin and phase margin
-- Bandwidth estimates
-- Nichols and polar plot exports
-- Frequency-domain compensator design artifacts
-- Interactive Plotly HTML and static Matplotlib PNG outputs where supported
-
----
-
-## Chapter 8 — PID Controllers and Variants
-
-```text
-pidControllers/
-  pidTool/                    # PID forms and controller parameter workflows
-  tuningTool/                 # Ziegler-Nichols, CHR, and IMC-style tuners
-  rootLocusTool/              # PID effects on root-locus behavior
-  zeroPoleTool/               # Zero/pole editing and visualization helpers
-```
-
-This section focuses on PID controller workflows, including common controller forms, tuning rules, response evaluation, and pole-zero interpretation.
-
-Expected outputs include:
-
-- PID gain sets
-- Step response comparisons
-- Frequency-response templates
-- Pole-zero summaries
-- CSV/JSON manifests and plots
-
----
-
-## Chapter 9 — Control Systems Analysis in State Space
-
-```text
-stateSpaceAnalysis/
-  stateTool/                  # A, B, C, D parsing, invariants, and norms
-  stateRepTool/               # State representation utilities
-  canonicalTool/              # Controllable and observable canonical transforms
-  stateTransTool/             # Similarity transforms and Jordan-form helpers where applicable
-  converterTool/              # Transfer-function / state-space conversion utilities
-  mimoTool/                   # Work in progress: MIMO state-space helpers
-  stateSolnTool/              # State-transition solutions and Phi(t) exports
-```
-
-These tools support state-space analysis workflows, including controllability, observability, state transition, canonical representation, and transfer-function conversion.
-
-Expected outputs include:
-
-- State matrices
-- Controllability and observability matrices
-- Rank checks
-- Minimality checks
-- State transition matrices
-- Time-response samples
-- Symbolic derivations where useful
-
----
-
-## Chapter 10 — Control Systems Design in State Space
-
-```text
-stateSpaceDesign/
-  controllerTool/             # Full-state feedback design
-  gainMatrixTool/             # Pole placement and gain-matrix workflows
-  observerGainMatrixTool/     # Luenberger observer gain design
-  observerStatePlotTool/      # Measured vs. estimated state plots
-  regulatorTool/              # Regulator forms and integral action
-  servoTool/                  # Augmented servo designs and command tracking
-  lqrTool/                    # Linear quadratic regulator workflows
-  minOrdTool/                 # Minimal-order observer workflows
-  minOrdTfTool/               # Minimal-order transfer-function synthesis helpers
-  robustTool/                 # Work in progress: robustness-oriented templates
-  statePlotsTool/             # State-space plotting utilities
-```
-
-This section focuses on state-space design workflows, including state feedback, observer design, servo design, regulator structures, LQR, and related plotting utilities.
-
-Expected outputs include:
-
-- Feedback gain matrices
-- Observer gain matrices
-- Closed-loop state matrices
-- Augmented system models
-- Regulator and servo summaries
-- Time-domain plots
-- JSON/CSV artifacts for review and reuse
-
----
-
-## Design principles
-
-### CLI-first workflow
+## CLI-first workflow
 
 The project emphasizes command-line execution so that analysis runs can be copied, reviewed, versioned, and repeated.
 
@@ -276,21 +205,30 @@ python cli.py --help
 python cli.py run --infile in/example.json --outfile out/example_out.json --pretty
 ```
 
-Where possible, tools also support running from the repository root with module-style invocation.
+Where possible, tools also support running from the repository root with module-style invocation:
 
-### Reproducible inputs and outputs
+```bash
+python -m root_locus_analysis.rootLocusTool.cli --help
+python -m transient_analysis.routhTool.cli run --coeffs "1,5,6,K" --symbol K --solve-for K
+```
 
-The project follows a consistent file convention:
+---
+
+## Reproducible inputs and outputs
+
+Most packages follow a consistent file convention:
 
 ```text
-in/      # Input files: JSON, CSV, YAML, or other supported formats
-out/     # Output files: JSON, CSV, PNG, HTML, and generated artifacts
-RUNS.md  # Copy-paste commands for the package
+in/       # Input files: JSON, CSV, YAML, TXT, or other supported formats
+out/      # Output files: JSON, CSV, PNG, HTML, and generated artifacts
+RUNS.md   # Copy-paste commands for the package
 ```
 
 This keeps examples inspectable and makes it easier to compare results across revisions.
 
-### Structured results
+---
+
+## Structured results
 
 Numerical results are intended to be useful both in the terminal and in downstream workflows. Many tools support some combination of:
 
@@ -301,9 +239,7 @@ Numerical results are intended to be useful both in the terminal and in downstre
 - Plotly HTML exports
 - Logs suitable for debugging and review
 
-### Package-level focus
-
-Each tool is kept relatively focused. This makes the repository easier to extend, test, and document without forcing every workflow into a single monolithic application.
+JSON output is generally treated as the primary machine-readable result. CSV exports are used for tabular data, while PNG and HTML exports are used for plots and engineering review artifacts.
 
 ---
 
@@ -311,8 +247,8 @@ Each tool is kept relatively focused. This makes the repository easier to extend
 
 ```bash
 # 1) Clone the repository
-git clone https://github.com/pablomarcel/control-modernControl.git
-cd control-modernControl
+git clone https://github.com/pablomarcel/control-systems.git
+cd control-systems
 
 # 2) Create and activate a virtual environment
 python -m venv .venv
@@ -331,10 +267,42 @@ python cli.py --help
 cat RUNS.md
 ```
 
-Some packages also support module execution from the repository root, depending on the local import shim and package structure:
+---
+
+## Example commands
+
+### Routh-Hurwitz stability check
 
 ```bash
-python -m root_locus_analysis.rootLocusTool.cli --help
+cd transient_analysis/routhTool
+
+python cli.py run \
+  --coeffs "1,5,6,K" \
+  --symbol K \
+  --solve-for K \
+  --hurwitz \
+  --export cubic_gain
+```
+
+### Root-locus package help
+
+```bash
+cd root_locus_analysis/rootLocusTool
+python cli.py --help
+```
+
+### Frequency-response package help
+
+```bash
+cd frequency_response/bodeTool
+python cli.py --help
+```
+
+### State-space design package help
+
+```bash
+cd state_space_design/gainMatrixTool
+python cli.py --help
 ```
 
 ---
@@ -354,6 +322,26 @@ For broader refactors, run the relevant package test suites before committing ch
 
 ---
 
+## Documentation workflow
+
+The documentation is generated with Sphinx and published to GitHub Pages.
+
+The live site is:
+
+```text
+https://pablomarcel.github.io/control-systems/
+```
+
+The GitHub Actions workflow for documentation publishing lives here:
+
+```text
+https://github.com/pablomarcel/control-systems/actions/workflows/pages.yml
+```
+
+When package APIs, CLI behavior, examples, or docstrings change, update the package documentation and verify the docs build before pushing.
+
+---
+
 ## I/O conventions
 
 Typical package layout:
@@ -363,12 +351,15 @@ someTool/
   cli.py
   apis.py
   core.py
+  io.py
+  utils.py
   in/
     example_input.json
   out/
     example_output.json
   tests/
   RUNS.md
+  docs/
 ```
 
 Common conventions:
@@ -379,6 +370,7 @@ Common conventions:
 - JSON output is treated as the primary machine-readable result
 - CSV exports are used for tabular data
 - PNG and HTML exports are used for plots and reports
+- Sphinx documentation is kept package-focused and published through the main GitHub Pages site
 
 ---
 
@@ -390,6 +382,8 @@ Depending on the package, the tools may generate:
 - State-space matrices
 - Pole-zero summaries
 - Stability tables
+- Routh arrays
+- Hurwitz determinant tables
 - Response metrics
 - Gain and compensator tables
 - Time-history data
@@ -428,6 +422,7 @@ When adding or modifying a tool:
 - Update the local `RUNS.md`
 - Add tests for new solver behavior
 - Keep JSON outputs stable where possible
+- Keep documentation links aligned with the published GitHub Pages paths
 - Prefer focused modules over large, tightly coupled scripts
 
 Suggested pull request checklist:
@@ -438,6 +433,8 @@ Suggested pull request checklist:
 - [ ] Output behavior verified under `out/`
 - [ ] Tests added or updated
 - [ ] Relevant documentation updated
+- [ ] Sphinx build verified
+- [ ] README documentation links still point to `https://pablomarcel.github.io/control-systems/`
 
 ---
 
@@ -452,6 +449,7 @@ Planned and ongoing areas of development include:
 - More robust plotting and export options
 - Expanded GitHub Pages documentation
 - Additional validation tests against known examples
+- More consistent package-level examples, command manifests, and Sphinx pages
 
 ---
 
@@ -467,4 +465,3 @@ This project is informed by standard control systems education and references, e
 
 - K. Ogata, _Modern Control Engineering_ (5th ed.)
 - The Python scientific computing ecosystem, including NumPy, SciPy, SymPy, matplotlib, plotly, and python-control
-
