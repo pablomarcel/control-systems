@@ -111,3 +111,10 @@ For **Ogata Ex. 5-8**, when poles are real and distinct, the plot can overlay th
 closed-form to validate the numeric curve.
 
 Happy controls! ⚙️
+
+### Sphinx
+
+python -m transient_analysis.icTool.cli sphinx-skel transient_analysis/icTool/docs
+python -m sphinx -b html docs docs/_build/html
+open docs/_build/html/index.html
+sphinx-autobuild docs docs/_build/html
