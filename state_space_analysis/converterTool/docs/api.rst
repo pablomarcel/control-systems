@@ -33,14 +33,6 @@ state_space_analysis.converterTool.core
    :undoc-members:
    :show-inheritance:
 
-state_space_analysis.converterTool.design
------------------------------------------
-
-.. automodule:: state_space_analysis.converterTool.design
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 state_space_analysis.converterTool.io
 -------------------------------------
 

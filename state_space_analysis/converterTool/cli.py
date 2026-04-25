@@ -27,7 +27,6 @@ _MODULES = [
     "state_space_analysis.converterTool.apis",
     "state_space_analysis.converterTool.app",
     "state_space_analysis.converterTool.core",
-    "state_space_analysis.converterTool.design",
     "state_space_analysis.converterTool.io",
     "state_space_analysis.converterTool.utils",
 ]
