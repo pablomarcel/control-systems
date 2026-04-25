@@ -197,3 +197,10 @@ pytest state_space_analysis/mimoTool/tests \
 ```
 
 Happy hacking 👾
+
+### Sphinx
+
+python -m state_space_analysis.mimoTool.cli sphinx-skel state_space_analysis/mimoTool/docs
+python -m sphinx -b html docs docs/_build/html
+open docs/_build/html/index.html
+sphinx-autobuild docs docs/_build/html

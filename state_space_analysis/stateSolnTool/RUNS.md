@@ -284,3 +284,9 @@ runroot python -m state_space_analysis.stateSolnTool.cli --num "1,2,3"
 - **Jordan** form routes through SymPy’s Jordan decomposition (can be slower for higher order systems).
 - All inputs are treated **exactly** (symbolically) whenever possible, with numeric fallbacks only for verification when the residual isn’t identically zero.
 
+### Sphinx
+
+python -m state_space_analysis.stateSolnTool.cli sphinx-skel state_space_analysis/stateSolnTool/docs
+python -m sphinx -b html docs docs/_build/html
+open docs/_build/html/index.html
+sphinx-autobuild docs docs/_build/html

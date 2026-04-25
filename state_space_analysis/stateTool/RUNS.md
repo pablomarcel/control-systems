@@ -247,3 +247,10 @@ runroot python -m state_space_analysis.stateTool.cli --A "0 1; -2 -3" --B "0; 1"
 # Export JSON (tf)
 runroot python -m state_space_analysis.stateTool.cli --tf "(s + 3)/(s^2 + 3*s + 2)" --mode all --export-json sys_summary_tf.json --log INFO
 ```
+
+### Sphinx
+
+python -m state_space_analysis.stateTool.cli sphinx-skel state_space_analysis/stateTool/docs
+python -m sphinx -b html docs docs/_build/html
+open docs/_build/html/index.html
+sphinx-autobuild docs docs/_build/html

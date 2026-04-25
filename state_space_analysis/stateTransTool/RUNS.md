@@ -251,3 +251,9 @@ runroot python -m state_space_analysis.stateTransTool.cli --tf "1/((s+1)^2)" --c
 - **`--numeric` printed for general `t`?** `--numeric` is only applied when `--eval` is provided.
 - **Exports not found**: ensure parent dir exists or use the `out/` paths shown above.
 
+### Sphinx
+
+python -m state_space_analysis.stateTransTool.cli sphinx-skel state_space_analysis/stateTransTool/docs
+python -m sphinx -b html docs docs/_build/html
+open docs/_build/html/index.html
+sphinx-autobuild docs docs/_build/html

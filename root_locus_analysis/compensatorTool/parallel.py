@@ -12,19 +12,18 @@ import control as ct
 from .utils import LOG, tf_arrays, pretty_tf
 
 
-# ───────────────────────── data types ─────────────────────────
-
 @dataclass(slots=True)
 class ParallelSolution:
+    """Computed solution point for the parallel-compensation design."""
+
     sstar: complex
     wn: float
     K: float
     k_scaled: float
 
 
-# ───────────────────────── utils ──────────────────────────────
-
 def _parse_list(name: str, s: Optional[str]) -> np.ndarray:
+    """Parse a comma-separated or semicolon-separated list of numbers."""
     if s is None:
         raise ValueError(f"Missing required polynomial/list for {name}.")
     toks = [t for t in s.replace(";", ",").split(",") if t.strip()]
@@ -35,6 +34,7 @@ def _parse_list(name: str, s: Optional[str]) -> np.ndarray:
 
 
 def _poly_roots(coeffs: np.ndarray) -> np.ndarray:
+    """Return the roots of a polynomial after removing leading near-zero terms."""
     c = np.array(coeffs, float)
     i = 0
     while i < len(c) - 1 and abs(c[i]) < 1e-14:
@@ -49,33 +49,34 @@ def _poly_roots(coeffs: np.ndarray) -> np.ndarray:
 
 
 def _eval_tf(G: "ct.TransferFunction", s: complex) -> complex:
+    """Evaluate a transfer function at a complex point."""
     n, d = tf_arrays(G)
     return np.polyval(n, s) / np.polyval(d, s)
 
 
 def _s_from_zeta_wn(zeta: float, wn: float) -> complex:
+    """Build a desired pole from damping ratio and natural frequency."""
     sigma = -zeta * wn
     wd = wn * math.sqrt(max(0.0, 1.0 - zeta * zeta))
     return complex(sigma, wd)
 
 
-# ───────────────────── building F(s) (three ways) ─────────────────────
-
 def build_F_from_blocks(
     *,
     g1_num: Optional[str], g1_den: Optional[str],
     g2_num: Optional[str], g2_den: Optional[str],
-    h_num: Optional[str],  h_den: Optional[str],
+    h_num: Optional[str], h_den: Optional[str],
     gcb_num: Optional[str], gcb_den: Optional[str],
 ) -> Optional[ct.TransferFunction]:
+    """Build the series-equivalent transfer function from block data."""
     if not all([g1_num, g1_den, g2_num, g2_den, gcb_num, gcb_den]):
         return None
     G1 = ct.tf(_parse_list("g1-num", g1_num), _parse_list("g1-den", g1_den))
     G2 = ct.tf(_parse_list("g2-num", g2_num), _parse_list("g2-den", g2_den))
-    H  = ct.tf(_parse_list("h-num",  h_num),  _parse_list("h-den",  h_den)) if (h_num and h_den) else ct.tf([1],[1])
+    H = ct.tf(_parse_list("h-num", h_num), _parse_list("h-den", h_den)) if (h_num and h_den) else ct.tf([1], [1])
     Gc_base = ct.tf(_parse_list("gcb-num", gcb_num), _parse_list("gcb-den", gcb_den))
-    Gf = ct.minreal(G2 / (1 + G1*G2*H), verbose=False)
-    F  = ct.minreal(Gc_base * Gf, verbose=False)
+    Gf = ct.minreal(G2 / (1 + G1 * G2 * H), verbose=False)
+    F = ct.minreal(Gc_base * Gf, verbose=False)
 
     print("G1(s):", pretty_tf(G1))
     print("G2(s):", pretty_tf(G2))
@@ -89,6 +90,7 @@ def build_F_from_char_split(
     *,
     A_num: Optional[str], B_num: Optional[str]
 ) -> Optional[Tuple[ct.TransferFunction, ct.TransferFunction, ct.TransferFunction]]:
+    """Build the series-equivalent model from characteristic-equation data."""
     if not (A_num and B_num):
         return None
     A = ct.tf(_parse_list("A-num", A_num), [1.0])
@@ -98,23 +100,23 @@ def build_F_from_char_split(
 
 
 def build_F_direct(*, F_num: Optional[str], F_den: Optional[str]) -> Optional[ct.TransferFunction]:
+    """Build the series-equivalent model from numerator and denominator data."""
     if not (F_num and F_den):
         return None
     return ct.tf(_parse_list("F-num", F_num), _parse_list("F-den", F_den))
 
 
-# ───────────────────── ζ-scan along the ray ─────────────────────
-
 def constant_zeta_scan(
     F: ct.TransferFunction, zeta: float,
     wn_lo: Optional[float], wn_hi: Optional[float], ngrid: int
 ) -> List[Tuple[complex, float]]:
+    """Scan along a constant-damping-ratio ray and return intersection candidates."""
     if not (0 < zeta < 1):
         raise ValueError("zeta must be in (0,1).")
 
-    # rough wn scale from singularities
     n, d = tf_arrays(F)
-    p = list(_poly_roots(d)); z = list(_poly_roots(n))
+    p = list(_poly_roots(d))
+    z = list(_poly_roots(n))
     mags = [abs(x) for x in (p + z) if np.isfinite(x) and abs(x) > 0]
     base = max(mags + [1.0])
     if wn_lo is None:
@@ -123,32 +125,32 @@ def constant_zeta_scan(
         wn_hi = 10.0 * base
 
     wns = np.linspace(float(wn_lo), float(wn_hi), int(max(400, ngrid)))
-    sline = -zeta * wns + 1j * wns * math.sqrt(1 - zeta*zeta)
+    sline = -zeta * wns + 1j * wns * math.sqrt(1 - zeta * zeta)
 
     vals = np.array([_eval_tf(F, s) for s in sline])
-    ang  = np.unwrap(np.angle(vals))
-    g = ang - math.pi  # want Arg(F)=π
+    ang = np.unwrap(np.angle(vals))
+    g = ang - math.pi
 
     sols: List[Tuple[complex, float]] = []
     for i in range(len(wns) - 1):
-        if g[i] == 0 or g[i] * g[i+1] < 0:
-            a, b = wns[i], wns[i+1]
-            fa, fb = g[i], g[i+1]
-            for _ in range(64):  # bisection
+        if g[i] == 0 or g[i] * g[i + 1] < 0:
+            a, b = wns[i], wns[i + 1]
+            fa, fb = g[i], g[i + 1]
+            m = 0.5 * (a + b)
+            for _ in range(64):
                 m = 0.5 * (a + b)
-                sm = -zeta*m + 1j*m*math.sqrt(1 - zeta*zeta)
+                sm = -zeta * m + 1j * m * math.sqrt(1 - zeta * zeta)
                 fm = math.atan2(_eval_tf(F, sm).imag, _eval_tf(F, sm).real) - math.pi
-                fm = (fm + math.pi) % (2*math.pi) - math.pi
+                fm = (fm + math.pi) % (2 * math.pi) - math.pi
                 if fa * fm <= 0:
                     b, fb = m, fm
                 else:
                     a, fa = m, fm
                 if abs(b - a) < 1e-9:
                     break
-            sstar = -zeta*m + 1j*m*math.sqrt(1 - zeta*zeta)
+            sstar = -zeta * m + 1j * m * math.sqrt(1 - zeta * zeta)
             sols.append((sstar, m))
 
-    # de-dup near-equal wn
     out: List[Tuple[complex, float]] = []
     for s, w in sols:
         if not any(abs(w - w2) < 1e-4 for _, w2 in out):
@@ -156,9 +158,8 @@ def constant_zeta_scan(
     return out
 
 
-# ───────────────────── plotting helpers ─────────────────────
-
 def _trimmed_limits(xs: np.ndarray, trim=0.01) -> Tuple[float, float]:
+    """Return padded plotting limits after trimming finite samples by quantile."""
     xs = xs[np.isfinite(xs)]
     if xs.size == 0:
         return -1.0, 1.0
@@ -171,6 +172,7 @@ def _trimmed_limits(xs: np.ndarray, trim=0.01) -> Tuple[float, float]:
 
 
 def _nice_round_bounds(xlo, xhi, ylo, yhi, pad_units=1.0, make_square=True):
+    """Round plot bounds to readable values and optionally enforce a square box."""
     xlo = math.floor(xlo - 1e-9) - pad_units
     xhi = math.ceil(xhi + 1e-9) + pad_units
     ylo = math.floor(ylo - 1e-9) - pad_units
@@ -187,6 +189,7 @@ def _nice_round_bounds(xlo, xhi, ylo, yhi, pad_units=1.0, make_square=True):
 
 
 def _apply_ogata_grid(ax, xlo, xhi, ylo, yhi, unit_ticks=True, show_grid=True):
+    """Apply equal aspect ratio, readable ticks, and optional grid lines."""
     try:
         ax.set_aspect('equal', adjustable='box')
     except Exception:
@@ -197,15 +200,15 @@ def _apply_ogata_grid(ax, xlo, xhi, ylo, yhi, unit_ticks=True, show_grid=True):
             a, b = math.floor(lo), math.ceil(hi)
             if b - a <= max_count:
                 return np.arange(a, b + 1, 1)
-            step = int(math.ceil((b - a)/max_count))
+            step = int(math.ceil((b - a) / max_count))
             return np.arange(a, b + 1, step)
         ax.set_xticks(_ints(xlo, xhi))
         ax.set_yticks(_ints(ylo, yhi))
     ax.grid(show_grid, ls=":")
 
 
-def _real_axis_segments(F: "ct.TransferFunction", xlo: float, xhi: float) -> List[Tuple[float,float]]:
-    """Intervals on the real axis where the locus exists (rule-of-odd)."""
+def _real_axis_segments(F: "ct.TransferFunction", xlo: float, xhi: float) -> List[Tuple[float, float]]:
+    """Return real-axis intervals where the root locus exists."""
     n, d = tf_arrays(F)
     re_sing = []
     for r in _poly_roots(n):
@@ -218,14 +221,15 @@ def _real_axis_segments(F: "ct.TransferFunction", xlo: float, xhi: float) -> Lis
     edges = [xlo] + re_sing + [xhi]
     segs: List[Tuple[float, float]] = []
     for i in range(len(edges) - 1):
-        mid = 0.5 * (edges[i] + edges[i+1])
-        cnt = sum(1 for s in re_sing if s > mid)  # to the RIGHT
+        mid = 0.5 * (edges[i] + edges[i + 1])
+        cnt = sum(1 for s in re_sing if s > mid)
         if cnt % 2 == 1:
-            segs.append((edges[i], edges[i+1]))
+            segs.append((edges[i], edges[i + 1]))
     return segs
 
 
 def _recommended_time_from_solutions(solutions: List[ParallelSolution]) -> np.ndarray:
+    """Choose a step-response time vector from the slowest stable design pole."""
     if not solutions:
         return np.linspace(0, 10.0, 2001)
     sigmas = [abs(sol.sstar.real) for sol in solutions if sol.sstar.real < 0]
@@ -234,8 +238,6 @@ def _recommended_time_from_solutions(solutions: List[ParallelSolution]) -> np.nd
     N = max(1000, int(200 * t_end))
     return np.linspace(0.0, t_end, N)
 
-
-# ───────────────────── plotting frontends ─────────────────────
 
 def plot_root_locus(
     F: "ct.TransferFunction",
@@ -254,7 +256,7 @@ def plot_root_locus(
     plotly_grid: bool = True,
     plotly_cross_axes: bool = False,
 ) -> None:
-    # compute root locus samples
+    """Plot a root locus with optional design points and HTML export."""
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         try:
@@ -265,7 +267,6 @@ def plot_root_locus(
         except TypeError:
             rl, _ = ct.root_locus(F, Plot=False, kvect=kvect if kvect is not None else np.logspace(-4, 4, max(40, kpts)))
 
-    # autoscale → integer-rounded, square box
     pts = np.hstack([np.asarray(b) for b in rl]) if isinstance(rl, (list, tuple)) else rl.reshape(-1)
     X = np.real(pts[np.isfinite(pts)])
     Y = np.imag(pts[np.isfinite(pts)])
@@ -277,7 +278,6 @@ def plot_root_locus(
         ylo, yhi = ylim_override
     xlo, xhi, ylo, yhi = _nice_round_bounds(xlo, xhi, ylo, yhi, pad_units=pad_units, make_square=True)
 
-    # matplotlib
     try:
         import matplotlib.pyplot as plt
         figsize = (8.6, 6.2) if legend_mode == "outside" else (7.2, 6.2)
@@ -291,7 +291,6 @@ def plot_root_locus(
             for k in range(rl.shape[1]):
                 ax.plot(rl[:, k].real, rl[:, k].imag, lw=1)
 
-        # zeros/poles and s*
         try:
             n, d = tf_arrays(F)
             z = _poly_roots(n)
@@ -308,14 +307,12 @@ def plot_root_locus(
             ax.plot([sol.sstar.real], [sol.sstar.imag], 'ko', mfc='w', label='s*' if not have_s_label else None)
             have_s_label = True
 
-        # ζ-ray
         if zeta_for_ray and 0 < zeta_for_ray < 1:
             theta = math.acos(zeta_for_ray)
             xs = np.linspace(xlo, max(xhi, 0.2), 300)
             ys = np.tan(theta) * (-xs)
-            ax.plot(xs, ys, '--', lw=0.9, color='brown', label=f'ζ={zeta_for_ray:g} ray')
+            ax.plot(xs, ys, '--', lw=0.9, color='brown', label=f'zeta={zeta_for_ray:g} ray')
 
-        # real-axis eligible segments
         if show_real_axis_segments:
             for a, b in _real_axis_segments(F, xlo, xhi):
                 ax.plot([a, b], [0, 0], lw=3, alpha=0.15, color='k')
@@ -338,7 +335,6 @@ def plot_root_locus(
     except Exception as e:
         LOG.warning("matplotlib locus failed: %s", e)
 
-    # Plotly export
     if plotly_html:
         try:
             import plotly.graph_objects as go
@@ -350,7 +346,7 @@ def plot_root_locus(
                     fig.add_trace(go.Scatter(x=br.real, y=br.imag, mode="lines", name="branch"))
             else:
                 for k in range(rl.shape[1]):
-                    fig.add_trace(go.Scatter(x=rl[:, k].real, y=rl[:, k].imag, mode="lines", name=f"branch {k+1}"))
+                    fig.add_trace(go.Scatter(x=rl[:, k].real, y=rl[:, k].imag, mode="lines", name=f"branch {k + 1}"))
 
             n, d = tf_arrays(F)
             z = _poly_roots(n)
@@ -366,13 +362,12 @@ def plot_root_locus(
                 fig.add_trace(go.Scatter(x=[sol.sstar.real], y=[sol.sstar.imag], mode="markers",
                                          marker=dict(symbol="circle-open", size=10), name=f"s* {i}"))
 
-            # ζ-ray
             if zeta_for_ray and 0 < zeta_for_ray < 1:
                 theta = math.acos(zeta_for_ray)
                 xs = np.linspace(xlo, max(xhi, 0.2), 300)
                 ys = np.tan(theta) * (-xs)
                 fig.add_trace(go.Scatter(x=xs, y=ys, mode="lines", line=dict(dash="dash"),
-                                         name=f"ζ={zeta_for_ray:g} ray"))
+                                         name=f"zeta={zeta_for_ray:g} ray"))
 
             fig.update_layout(
                 title=title, template="plotly_white",
@@ -395,46 +390,49 @@ def plot_root_locus(
 
 
 def _step_from_blocks(
-    *, g1_num: Optional[str], g1_den: Optional[str],
+    *,
+    g1_num: Optional[str], g1_den: Optional[str],
     g2_num: Optional[str], g2_den: Optional[str],
-    h_num: Optional[str],  h_den: Optional[str],
+    h_num: Optional[str], h_den: Optional[str],
     gcb_num: Optional[str], gcb_den: Optional[str],
     K: float
 ) -> Optional[ct.TransferFunction]:
+    """Build the closed-loop transfer function for the block-diagram form."""
     if not all([g1_num, g1_den, g2_num, g2_den, gcb_num, gcb_den]):
         return None
     try:
         G1 = ct.tf(_parse_list("g1-num", g1_num), _parse_list("g1-den", g1_den))
         G2 = ct.tf(_parse_list("g2-num", g2_num), _parse_list("g2-den", g2_den))
-        H  = ct.tf(_parse_list("h-num",  h_num),  _parse_list("h-den",  h_den)) if (h_num and h_den) else ct.tf([1],[1])
+        H = ct.tf(_parse_list("h-num", h_num), _parse_list("h-den", h_den)) if (h_num and h_den) else ct.tf([1], [1])
         Gc_base = ct.tf(_parse_list("gcb-num", gcb_num), _parse_list("gcb-den", gcb_den))
         Gc = ct.minreal(K * Gc_base, verbose=False)
-        # Series-equivalent for the closed loop described in your script:
-        T = ct.minreal((G1*G2) / (1 + G1*G2*H + G2*Gc), verbose=False)
+        T = ct.minreal((G1 * G2) / (1 + G1 * G2 * H + G2 * Gc), verbose=False)
         return T
     except Exception:
         return None
 
 
 def _step_from_char(A_num: Optional[str], B_num: Optional[str], step_num: Optional[str], K: float) -> Optional[ct.TransferFunction]:
+    """Build a step-response transfer function from characteristic-polynomial data."""
     if not (A_num and B_num and step_num):
         return None
     A = ct.tf(_parse_list("A-num", A_num), [1.0])
     B = ct.tf(_parse_list("B-num", B_num), [1.0])
-    den = ct.minreal(A + K*B, verbose=False)
+    den = ct.minreal(A + K * B, verbose=False)
     num = ct.tf(_parse_list("step-num", step_num), [1.0])
     return ct.minreal(num / den, verbose=False)
 
 
 def compute_step_traces(
-    *, solutions: List[ParallelSolution],
+    *,
+    solutions: List[ParallelSolution],
     g1_num: Optional[str], g1_den: Optional[str],
     g2_num: Optional[str], g2_den: Optional[str],
-    h_num: Optional[str],  h_den: Optional[str],
+    h_num: Optional[str], h_den: Optional[str],
     gcb_num: Optional[str], gcb_den: Optional[str],
     A_num: Optional[str], B_num: Optional[str], step_num: Optional[str],
 ) -> Tuple[Optional[np.ndarray], List[Tuple[str, np.ndarray]]]:
-    """Return (t, traces) where traces = [(label, y(t)), ...]."""
+    """Return a time vector and response traces for the computed solutions."""
     if not solutions:
         return None, []
     t = _recommended_time_from_solutions(solutions)
@@ -443,33 +441,31 @@ def compute_step_traces(
         Tsys = _step_from_blocks(
             g1_num=g1_num, g1_den=g1_den,
             g2_num=g2_num, g2_den=g2_den,
-            h_num=h_num,   h_den=h_den,
+            h_num=h_num, h_den=h_den,
             gcb_num=gcb_num, gcb_den=gcb_den,
             K=sol.K
         )
         if Tsys is None:
             Tsys = _step_from_char(A_num, B_num, step_num, sol.K)
         if Tsys is None:
-            LOG.info("Step plot requested, but neither blocks nor (A,B,step-num) were provided.")
+            LOG.info("Step plot requested, but neither blocks nor characteristic-equation data were provided.")
             return None, []
         _, y = ct.step_response(Tsys, T=t)
         traces.append((f"K={sol.K:.5g} (k={sol.k_scaled:.5g})", y))
     return t, traces
 
 
-# ───────────────────── user-facing app ─────────────────────
-
 class ParallelCompensatorApp:
     """
-    Small orchestrator around the series-equivalent parallel compensation locus:
-        1 + K F(s) = 0
-    Builds F(s) three ways (blocks, A+K·B split, or direct),
-    computes K for s* or finds intersections along a ζ-ray,
-    prints a clean report, and optionally plots locus/step.
+    Application service for series-equivalent parallel-compensation studies.
+
+    The service builds a root-locus model from block data, characteristic-equation
+    data, or a directly supplied transfer function. It then computes the gain for
+    a requested design point or searches along a constant-damping-ratio ray.
     """
 
     def _parse_limits_arg(self, values: Optional[List[str]], name: str) -> Optional[Tuple[float, float]]:
-        """Accept either: --xlim LO HI  or  --xlim 'LO,HI' (forward-compatible with cli)."""
+        """Parse axis-limit arguments accepted as two values or one comma string."""
         if values is None:
             return None
         parts: List[str]
@@ -493,19 +489,14 @@ class ParallelCompensatorApp:
     def run(
         self,
         *,
-        # (i) blocks
         g1_num: Optional[str], g1_den: Optional[str],
         g2_num: Optional[str], g2_den: Optional[str],
-        h_num: Optional[str],  h_den: Optional[str],
+        h_num: Optional[str], h_den: Optional[str],
         gcb_num: Optional[str], gcb_den: Optional[str],
-        # (ii) A+K·B split (and step numerator for output TF)
         A_num: Optional[str], B_num: Optional[str], step_num: Optional[str],
-        # (iii) direct F
         F_num: Optional[str], F_den: Optional[str],
-        # specs
         zeta: Optional[float], wn: Optional[float],
         sreal: Optional[float], wimag: Optional[float],
-        # plotting/report knobs
         plot: Tuple[str, ...] | None = None,
         k_range: Optional[str] = None,
         k_pts: int = 600,
@@ -526,43 +517,46 @@ class ParallelCompensatorApp:
         scale: float = 1.0,
         verbose: int = 0,
     ) -> List[ParallelSolution]:
-
-        # Build F(s) by precedence: blocks → (A,B) → direct
-        F = None; A = B = None
+        """Run the parallel-compensation analysis and return computed solutions."""
+        F = None
+        A = B = None
         Fb = build_F_from_blocks(g1_num=g1_num, g1_den=g1_den, g2_num=g2_num, g2_den=g2_den,
                                  h_num=h_num, h_den=h_den, gcb_num=gcb_num, gcb_den=gcb_den)
         if Fb is not None:
-            print("F(s) from blocks =", pretty_tf(Fb)); F = Fb
+            print("F(s) from blocks =", pretty_tf(Fb))
+            F = Fb
 
         cs = build_F_from_char_split(A_num=A_num, B_num=B_num)
         if cs is not None:
-            Fcs, A, B = cs; print("F(s) from A+K·B split =", pretty_tf(Fcs)); F = Fcs
+            Fcs, A, B = cs
+            print("F(s) from A+K*B split =", pretty_tf(Fcs))
+            F = Fcs
 
         Fd = build_F_direct(F_num=F_num, F_den=F_den)
         if Fd is not None:
-            print("F(s) direct        =", pretty_tf(Fd)); F = Fd
+            print("F(s) direct        =", pretty_tf(Fd))
+            F = Fd
 
         if F is None:
             raise ValueError("Provide F(s): via blocks (G1,G2,H,+Gc_base), OR --A-num/--B-num, OR --F-num/--F-den.")
 
-        # Solve K for provided s* or run ζ-scan
         solutions: List[ParallelSolution] = []
         if zeta is not None and wn is not None:
             if not (0 < zeta < 1 and wn > 0):
-                raise ValueError("--zeta ∈ (0,1), --wn > 0 required.")
+                raise ValueError("--zeta must be in (0,1), and --wn must be positive.")
             sstar = _s_from_zeta_wn(zeta, wn)
             K = 1.0 / abs(_eval_tf(F, sstar))
-            solutions.append(ParallelSolution(sstar=sstar, wn=wn, K=K, k_scaled=K/scale))
+            solutions.append(ParallelSolution(sstar=sstar, wn=wn, K=K, k_scaled=K / scale))
         elif sreal is not None and wimag is not None:
             if wimag < 0:
-                raise ValueError("--wimag must be ≥ 0.")
+                raise ValueError("--wimag must be nonnegative.")
             sstar = complex(sreal, wimag)
             wn_eff = abs(sstar)
             K = 1.0 / abs(_eval_tf(F, sstar))
-            solutions.append(ParallelSolution(sstar=sstar, wn=wn_eff, K=K, k_scaled=K/scale))
+            solutions.append(ParallelSolution(sstar=sstar, wn=wn_eff, K=K, k_scaled=K / scale))
         else:
             if zeta is None:
-                raise ValueError("Provide either (--zeta, --wn) or (--sreal, --wimag), or ζ-only for a ζ-scan.")
+                raise ValueError("Provide either (--zeta, --wn) or (--sreal, --wimag), or zeta-only for a scan.")
             if not (0 < zeta < 1):
                 raise ValueError("--zeta must be in (0,1).")
             wn_lo = wn_hi = None
@@ -572,31 +566,29 @@ class ParallelCompensatorApp:
                     wn_lo, wn_hi = float(parts[0]), float(parts[1])
             for sstar, wn_i in constant_zeta_scan(F, zeta, wn_lo, wn_hi, grid):
                 K = 1.0 / abs(_eval_tf(F, sstar))
-                solutions.append(ParallelSolution(sstar=sstar, wn=wn_i, K=K, k_scaled=K/scale))
+                solutions.append(ParallelSolution(sstar=sstar, wn=wn_i, K=K, k_scaled=K / scale))
             if not solutions:
-                LOG.warning("No intersections found on the ζ-ray. Adjust --wn-range or --grid.")
+                LOG.warning("No intersections found on the zeta ray. Adjust --wn-range or --grid.")
 
-        # Report
-        print("\nSeries-equivalent loop: 1 + K·F(s) = 0")
+        print("\nSeries-equivalent loop: 1 + K*F(s) = 0")
         print("F(s) =", pretty_tf(F))
         n, d = tf_arrays(F)
-        z = _poly_roots(n); p = _poly_roots(d)
+        z = _poly_roots(n)
+        p = _poly_roots(d)
         if z.size or p.size:
-            ztxt = [f"{c.real:.4g}+{c.imag:.4g}j" for c in z] or ["—"]
-            ptxt = [f"{c.real:.4g}+{c.imag:.4g}j" for c in p] or ["—"]
+            ztxt = [f"{c.real:.4g}+{c.imag:.4g}j" for c in z] or ["-"]
+            ptxt = [f"{c.real:.4g}+{c.imag:.4g}j" for c in p] or ["-"]
             print("Open-loop zeros:", ztxt, "\nOpen-loop poles :", ptxt)
         print("scale =", scale)
-        print("\nSolutions (on ζ-line if applicable):")
-        print("  (σ, jωd)                   ωn            K                 k = K/scale")
+        print("\nSolutions (on zeta line if applicable):")
+        print("  (sigma, jwd)                 wn            K                 k = K/scale")
         for sol in solutions:
             s = sol.sstar
             print(f"  ({s.real:+.6g}, {s.imag:+.6g}j)   {sol.wn:.6g}     {sol.K:.6g}          {sol.k_scaled:.6g}")
 
-        # parse axis overrides (optional)
         xlim_pair = self._parse_limits_arg(xlim, "xlim") if xlim else None
         ylim_pair = self._parse_limits_arg(ylim, "ylim") if ylim else None
 
-        # Plots
         if plot:
             if "locus" in plot:
                 kmin = kmax = None
@@ -608,7 +600,7 @@ class ParallelCompensatorApp:
                     F, solutions,
                     kmin=kmin, kmax=kmax, kpts=int(max(40, k_pts)),
                     clip=max(0.0, min(0.2, locus_clip)),
-                    title="Root Locus of 1 + K·F(s)",
+                    title="Root Locus of 1 + K*F(s)",
                     plotly_html=plotly_locus,
                     zeta_for_ray=zeta if (zeta is not None and wn is None) else None,
                     ogata_grid=not no_ogata_grid,
@@ -626,18 +618,19 @@ class ParallelCompensatorApp:
                     solutions=solutions,
                     g1_num=g1_num, g1_den=g1_den,
                     g2_num=g2_num, g2_den=g2_den,
-                    h_num=h_num,   h_den=h_den,
+                    h_num=h_num, h_den=h_den,
                     gcb_num=gcb_num, gcb_den=gcb_den,
                     A_num=A_num, B_num=B_num, step_num=step_num,
                 )
                 if t is not None and traces:
-                    # Matplotlib step
                     try:
                         import matplotlib.pyplot as plt
                         fig, ax = plt.subplots(1, 1, figsize=(7.6, 4.4))
                         for label, y in traces:
                             ax.plot(t, y, label=label)
-                        ax.grid(True, ls=":"); ax.set_xlabel("t [s]"); ax.set_ylabel("y(t)")
+                        ax.grid(True, ls=":")
+                        ax.set_xlabel("t [s]")
+                        ax.set_ylabel("y(t)")
                         ax.set_title("Unit-step (all solutions)")
                         ax.legend()
                         fig.tight_layout()
@@ -645,7 +638,6 @@ class ParallelCompensatorApp:
                     except Exception as e:
                         LOG.warning("Step plot (matplotlib) failed: %s", e)
 
-                    # Plotly step (optional)
                     if plotly_step:
                         try:
                             import plotly.graph_objects as go
@@ -655,7 +647,7 @@ class ParallelCompensatorApp:
                             fig.update_layout(
                                 title="Unit-step (all solutions)", template="plotly_white",
                                 xaxis=dict(title="t [s]", showgrid=(plotly_grid == "on")),
-                                yaxis=dict(title="y(t)",  showgrid=(plotly_grid == "on")),
+                                yaxis=dict(title="y(t)", showgrid=(plotly_grid == "on")),
                                 legend=dict(x=1.02, y=1, xanchor="left"),
                                 margin=dict(l=60, r=80, t=50, b=60),
                             )
