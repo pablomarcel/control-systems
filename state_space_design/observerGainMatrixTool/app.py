@@ -1,12 +1,6 @@
 from __future__ import annotations
-"""
-ObserverGainMatrixApp — high-level orchestration for full-order observer design,
-optional state-feedback K synthesis, closed-loop build, observer-controller TF,
-and zero-input simulation.
 
-Public entry point:
-    ObserverGainMatrixApp.run(req: ObserverRequest) -> ObserverResponse
-"""
+"""Application orchestration for observer gain matrix design."""
 
 from dataclasses import dataclass, field
 from typing import Optional, Dict, Any, Tuple
@@ -31,7 +25,7 @@ from .io import OutputManager
 
 # ---------------------- LaTeX helpers ----------------------
 def latex_bmatrix(M: np.ndarray) -> str:
-    """Render a minimal LaTeX bmatrix string without SymPy dependency."""
+    """Render a minimal LaTeX bmatrix string without a SymPy dependency."""
     rows = [" ".join([f"{v:g}" for v in row]) for row in M]
     return "\\begin{bmatrix}" + " \\\\ ".join(rows) + "\\end{bmatrix}"
 
@@ -39,13 +33,7 @@ def latex_bmatrix(M: np.ndarray) -> str:
 def latex_equation(
     A: np.ndarray, B: Optional[np.ndarray], C: np.ndarray, Ke: np.ndarray
 ) -> str:
-    """
-    Build the LaTeX observer equation snippet:
-
-        \dot{\tilde{x}} = (A - K_e C)\tilde{x} + B u + K_e y
-
-    Returns a complete display-math block.
-    """
+    """Build a display-math LaTeX snippet for the observer equation."""
     Acl = A - Ke @ C
     pieces = [latex_bmatrix(Acl) + "\\,\\tilde{x}"]
     if B is not None:
@@ -64,11 +52,7 @@ def latex_equation(
 def build_augmented(
     A: np.ndarray, B: np.ndarray, C: np.ndarray, K: np.ndarray, Ke: np.ndarray
 ) -> np.ndarray:
-    """
-    Build the 2n×2n augmented matrix for the separation structure:
-
-        z = [x; e],  z_dot = [A - BK,  BK; 0,  A - KeC] z
-    """
+    """Build the augmented separation-structure state matrix."""
     if A.shape[0] != A.shape[1]:
         raise ValueError("A must be square for augmented build.")
     n = A.shape[0]
@@ -87,19 +71,14 @@ def build_augmented(
 def observer_controller_tf(
     A: np.ndarray, B: np.ndarray, C: np.ndarray, K: np.ndarray, Ke: np.ndarray
 ) -> Tuple[list, list]:
-    """
-    Observer-controller transfer:
-        Gc(s) = K (sI - A + Ke C + B K)^-1 Ke
-
-    Returns (num, den) as Python lists for JSON-ability.
-    """
-    # A_c is the closed-loop dynamics seen by the observer-controller path
+    """Compute the observer-controller transfer-function numerator and denominator."""
+    # A_c is the closed-loop dynamics seen by the observer-controller path.
     A_c = A - Ke @ C - B @ K
     B_c = Ke
     C_c = K
     D_c = np.zeros((1, B_c.shape[1]))
     num, den = signal.ss2tf(A_c, B_c, C_c, D_c)
-    # num is shaped (outputs, inputs, order+1); we’re SISO on the "u<-y" path
+    # num is shaped (outputs, inputs, order+1); this tool reports the u-from-y path.
     return num[0].tolist(), den.tolist()
 
 
@@ -112,11 +91,7 @@ def simulate_initial(
     t_final: float,
     dt: float,
 ) -> Tuple[list, list, list, list, list]:
-    """
-    Zero-input simulation of the augmented system using exact discretization step:
-        z_{k+1} = expm(A_aug * dt) z_k
-    Produces t, X, E, U, Y as lists for JSON-ability.
-    """
+    """Simulate the zero-input augmented system by exact discretization."""
     if t_final <= 0:
         raise ValueError("t_final must be positive for simulation.")
     if dt <= 0:
@@ -148,15 +123,12 @@ def simulate_initial(
 # ---------------------- Application ----------------------
 @dataclass
 class ObserverGainMatrixApp:
-    """
-    Thin, testable orchestration layer.
-    - Does not log or print; returns structured response for callers (CLI, notebooks, tests).
-    - Keeps I/O (file writes) behind OutputManager injected via `out`.
-    """
+    """Orchestrate observer gain design and optional reporting outputs."""
+
     out: OutputManager = field(default_factory=OutputManager)
 
     def _parse_and_validate(self, req: ObserverRequest) -> Tuple[np.ndarray, Optional[np.ndarray], np.ndarray]:
-        """Parse A/B/C from request and validate shapes."""
+        """Parse request matrices and validate their dimensions."""
         A = parse_matrix(req.A)
         C = parse_matrix(req.C)
         if A.ndim != 2 or A.shape[0] != A.shape[1]:
@@ -169,14 +141,14 @@ class ObserverGainMatrixApp:
         return A, B, C
 
     def _design_observer(self, A: np.ndarray, C: np.ndarray, req: ObserverRequest) -> Tuple[np.ndarray, Dict[str, Any], str]:
-        """Compute Ke with requested method and meta."""
+        """Compute the observer gain matrix and metadata."""
         n = A.shape[0]
         if not isinstance(req.poles, (list, tuple, np.ndarray)):
             raise ValueError("poles must be a sequence of complex (or real) values.")
         if len(req.poles) != n:
             raise ValueError(f"Observer poles must have length n={n}.")
 
-        # Observability check
+        # Observability check.
         Mo = obsv_matrix(A, C)
         if np.linalg.matrix_rank(Mo) != n:
             raise ValueError("System not observable (rank(Mo) < n).")
@@ -197,7 +169,7 @@ class ObserverGainMatrixApp:
     def _design_controller_if_requested(
         self, A: np.ndarray, B: Optional[np.ndarray], C: np.ndarray, req: ObserverRequest
     ) -> Optional[np.ndarray]:
-        """Optional state-feedback K via explicit K or pole placement."""
+        """Compute an optional state-feedback gain from explicit values or poles."""
         n = A.shape[0]
         if req.K:
             K = parse_matrix(req.K).reshape(1, -1)
@@ -205,7 +177,7 @@ class ObserverGainMatrixApp:
                 raise ValueError(f"Provided K must have length n={n}.")
             return K
 
-        # Poles form: CSV or list
+        # Poles form: CSV or list.
         poles_tokens = None
         if req.K_poles_list:
             poles_tokens = req.K_poles_list
@@ -218,15 +190,15 @@ class ObserverGainMatrixApp:
         if B is None:
             raise ValueError("B is required if K poles provided.")
 
-        poles_k = parse_cplx_tokens(poles_tokens) if req.K_poles_list else parse_cplx_csv(req.K_poles_csv)  # type: ignore
+        poles_k = parse_cplx_tokens(poles_tokens) if req.K_poles_list else parse_cplx_csv(req.K_poles_csv)  # type: ignore[arg-type]
         if poles_k.size != n:
             raise ValueError(f"K_poles length must be n={n}.")
         return ControllerDesigner().compute_place(A, B, poles_k)
 
     def _pretty_block(self, A: np.ndarray, C: np.ndarray, Ke: np.ndarray, method_used: str, meta: Dict[str, Any]) -> list[str]:
-        """Builds human-friendly summary strings."""
+        """Build human-friendly summary strings."""
         Aerr = A - Ke @ C
-        # Stable characteristic polynomial coefficients (real part)
+        # Stable characteristic polynomial coefficients, real part only.
         char_ach = np.poly(np.sort_complex(eigvals(Aerr))).real
         blocks = [
             "== Full-Order Observer Design ==",
@@ -239,34 +211,29 @@ class ObserverGainMatrixApp:
         return blocks
 
     def run(self, req: ObserverRequest) -> ObserverResponse:
-        """
-        Orchestrate full computation. Returns:
-            - matrices and design metadata,
-            - optional closed-loop build, transfer, and simulation,
-            - optional LaTeX snippet path.
-        """
-        # Parse & validate
+        """Run the full observer-gain workflow and return structured results."""
+        # Parse and validate.
         A, B, C = self._parse_and_validate(req)
         n = A.shape[0]
 
-        # Observer K_e
+        # Observer gain.
         Ke, meta, method_used = self._design_observer(A, C, req)
 
-        # Optional K
+        # Optional controller gain.
         K = self._design_controller_if_requested(A, B, C, req)
 
-        # Pretty strings (optional)
+        # Pretty strings.
         pretty_blocks: list[str] = []
         if req.pretty:
             pretty_blocks = self._pretty_block(A, C, Ke, method_used, meta)
 
-        # Optional LaTeX
+        # Optional LaTeX.
         latex_path: Optional[str] = None
         if req.latex_out:
             latex_text = latex_equation(A, B, C, Ke)
             latex_path = str(self.out.write_text(latex_text, req.latex_out))
 
-        # Closed-loop / TF / sim
+        # Closed-loop model, transfer function, and simulation.
         A_BK = A_KeC = A_aug = None
         tf_num = tf_den = None
         sim = None
