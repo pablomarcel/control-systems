@@ -106,3 +106,10 @@ python cli.py --file tuning_rules.json --method ZN_ultimate --controller PI --Kc
 ```bash
 python cli.py --file tuning_rules.json --method ZN_step --controller PID
 ```
+
+### Sphinx
+
+python -m pid_controllers.tuningTool.cli sphinx-skel pid_controllers/tuningTool/docs
+python -m sphinx -b html docs docs/_build/html
+open docs/_build/html/index.html
+sphinx-autobuild docs docs/_build/html

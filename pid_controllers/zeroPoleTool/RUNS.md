@@ -115,3 +115,10 @@ python cli.py   --plant-form poly --num-poly "10" --den-poly "s*(s+1)"   --a-ran
 - **Best-effort**: If no candidate meets specs and `--best-effort` is set, the tool promotes the closest candidate so you still get channels/plots.
 - **Performance**: Big grids can be slow; tighten ranges or reduce `*-n` for speed.
 - **Exports**: JSON/CSV end up in `./out/` (this package’s `out` folder). Use `--save-prefix`/`--plot-prefix` to avoid overwrites.
+
+### Sphinx
+
+python -m pid_controllers.zeroPoleTool.cli sphinx-skel pid_controllers/zeroPoleTool/docs
+python -m sphinx -b html docs docs/_build/html
+open docs/_build/html/index.html
+sphinx-autobuild docs docs/_build/html
