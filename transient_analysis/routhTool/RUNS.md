@@ -71,3 +71,9 @@ python -m transient_analysis.routhTool.cli --coeffs "1, 5, 6, 2" --export demo
 - `--eps 1e-9`: epsilon used for the ε-trick when a row’s leading entry is zero.
 - `--export NAME`: write a JSON report to `out/NAME.json`.
 
+### Sphinx
+
+python -m transient_analysis.routhTool.cli sphinx-skel transient_analysis/routhTool/docs
+python -m sphinx -b html docs docs/_build/html
+open docs/_build/html/index.html
+sphinx-autobuild docs docs/_build/html

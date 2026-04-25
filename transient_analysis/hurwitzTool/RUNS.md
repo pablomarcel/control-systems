@@ -82,3 +82,10 @@ python cli.py --coeffs "1, 2, 4+K, 9, 25" --symbols K --solve-for K --lienard --
 - Use `--csv` with `--scan` (1‑D) and `--csv2`/`--png` with `--scan2` (2‑D).
 - `--base-dir` controls the IO root (it creates `in/` and `out/` under that directory).
 - If you run into import issues in custom environments, ensure the repo root is in `PYTHONPATH` or stick to the root-run form `python -m transientAnalysis.hurwitzTool.cli`.
+
+### Sphinx
+
+python -m transient_analysis.hurwitzTool.cli sphinx-skel transient_analysis/hurwitzTool/docs
+python -m sphinx -b html docs docs/_build/html
+open docs/_build/html/index.html
+sphinx-autobuild docs docs/_build/html

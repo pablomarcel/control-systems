@@ -213,3 +213,10 @@ python cli.py second-order-plotly --wn 5 --zeta-min 0 --zeta-max 1 --zeta-steps 
 ```bash
 python cli.py second-order-plotly --wn 3 --zeta-min 0 --zeta-max 1 --zeta-steps 41 --tfinal 6 --dt 0.01 --overlay "0.1,0.4,0.7" --save-prefix "std2_plotly_png" --save-html "std2_plotly_png.html" --save-png "std2_plotly_png.png"
 ```
+
+### Sphinx
+
+python -m transient_analysis.responseTool.cli sphinx-skel transient_analysis/responseTool/docs
+python -m sphinx -b html docs docs/_build/html
+open docs/_build/html/index.html
+sphinx-autobuild docs docs/_build/html
