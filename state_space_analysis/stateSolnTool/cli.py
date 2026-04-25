@@ -1,4 +1,4 @@
-# cli.py - CLI entry point for state_space_analysis.stepSolnTool
+# cli.py - CLI entry point for state_space_analysis.stateSolnTool
 from __future__ import annotations
 
 import argparse
@@ -8,26 +8,26 @@ from pathlib import Path
 
 # ---------- Import shim so `python cli.py` works with absolute imports ----------
 if __package__ in (None, ""):
-    # Running as a script from inside state_space_analysis/stepSolnTool.
+    # Running as a script from inside state_space_analysis/stateSolnTool.
     pkg_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
     if pkg_root not in sys.path:
         sys.path.insert(0, pkg_root)
 
-    from state_space_analysis.stepSolnTool.app import StateSolnApp
+    from state_space_analysis.stateSolnTool.app import StateSolnApp
 else:
     from .app import StateSolnApp
 
 
-_PACKAGE = "state_space_analysis.stepSolnTool"
-_PROJECT = "modernControl - state_space_analysis.stepSolnTool"
+_PACKAGE = "state_space_analysis.stateSolnTool"
+_PROJECT = "modernControl - state_space_analysis.stateSolnTool"
 _AUTHOR = "modernControl"
 _MODULES = [
-    "state_space_analysis.stepSolnTool.cli",
-    "state_space_analysis.stepSolnTool.apis",
-    "state_space_analysis.stepSolnTool.app",
-    "state_space_analysis.stepSolnTool.core",
-    "state_space_analysis.stepSolnTool.io",
-    "state_space_analysis.stepSolnTool.utils",
+    "state_space_analysis.stateSolnTool.cli",
+    "state_space_analysis.stateSolnTool.apis",
+    "state_space_analysis.stateSolnTool.app",
+    "state_space_analysis.stateSolnTool.core",
+    "state_space_analysis.stateSolnTool.io",
+    "state_space_analysis.stateSolnTool.utils",
 ]
 
 
@@ -63,7 +63,7 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-# docs -> stepSolnTool -> state_space_analysis -> repository root
+# docs -> stateSolnTool -> state_space_analysis -> repository root
 ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT))
 

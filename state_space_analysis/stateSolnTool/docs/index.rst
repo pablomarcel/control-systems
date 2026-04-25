@@ -1,7 +1,7 @@
-.. state_space_analysis.stepSolnTool documentation master file
+.. state_space_analysis.stateSolnTool documentation master file
 
-Welcome to state_space_analysis.stepSolnTool's documentation
-============================================================
+Welcome to state_space_analysis.stateSolnTool's documentation
+=============================================================
 
 .. toctree::
    :maxdepth: 2
