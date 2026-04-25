@@ -67,3 +67,10 @@ python cli.py design \
  * All commands write artifacts (when applicable) to `rootLocus/compensatorTool/out/`.
  * Use `-v` or `-vv` for more logging detail.
  * For Plotly HTML, pass `--plotly-locus` / `--plotly-step` with output paths (they'll be created).
+
+### Sphinx
+
+python -m root_locus_analysis.compensatorTool.cli sphinx-skel root_locus_analysis/compensatorTool/docs
+python -m sphinx -b html docs docs/_build/html
+open docs/_build/html/index.html
+sphinx-autobuild docs docs/_build/html

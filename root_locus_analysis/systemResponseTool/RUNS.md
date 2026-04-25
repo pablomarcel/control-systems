@@ -115,3 +115,10 @@ python cli.py run   --sys "ss; name=Plant; A=[0,1; -1,-1]; B=[0;1]; C=[1,0; 0,1]
 * For `--arb-kind file`, passing a relative filename like `my_u.csv` will be resolved against the local `in/` folder, which is created automatically.
 * Factorized polynomials in `s` (e.g., `(s+4.6)*s*(s+1)`) are supported; quote them in your shell.
 * Use `--log-level DEBUG` for extra diagnostics.
+
+### Sphinx
+
+python -m root_locus_analysis.systemResponseTool.cli sphinx-skel root_locus_analysis/systemResponseTool/docs
+python -m sphinx -b html docs docs/_build/html
+open docs/_build/html/index.html
+sphinx-autobuild docs docs/_build/html
