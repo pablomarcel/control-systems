@@ -8,28 +8,29 @@ from pathlib import Path
 
 # ---------- Import shim so `python cli.py` works with absolute imports ----------
 if __package__ in (None, ""):
-    # Running as a script from inside state_space_analysis/stepRepTool.
+    # Running as a script from inside state_space_analysis/stateRepTool.
     pkg_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
     if pkg_root not in sys.path:
         sys.path.insert(0, pkg_root)
 
-    from state_space_analysis.stepRepTool.apis import StateRepAPIRequest
-    from state_space_analysis.stepRepTool.app import StateRepApp
+    from state_space_analysis.stateRepTool.apis import StateRepAPIRequest
+    from state_space_analysis.stateRepTool.app import StateRepApp
 else:
     from .apis import StateRepAPIRequest
     from .app import StateRepApp
 
 
-_PACKAGE = "state_space_analysis.stepRepTool"
-_PROJECT = "modernControl - state_space_analysis.stepRepTool"
+_PACKAGE = "state_space_analysis.stateRepTool"
+_PROJECT = "modernControl - state_space_analysis.stateRepTool"
 _AUTHOR = "modernControl"
 _MODULES = [
-    "state_space_analysis.stepRepTool.cli",
-    "state_space_analysis.stepRepTool.apis",
-    "state_space_analysis.stepRepTool.app",
-    "state_space_analysis.stepRepTool.core",
-    "state_space_analysis.stepRepTool.io",
-    "state_space_analysis.stepRepTool.utils",
+    "state_space_analysis.stateRepTool.cli",
+    "state_space_analysis.stateRepTool.apis",
+    "state_space_analysis.stateRepTool.app",
+    "state_space_analysis.stateRepTool.core",
+    "state_space_analysis.stateRepTool.design",
+    "state_space_analysis.stateRepTool.io",
+    "state_space_analysis.stateRepTool.utils",
 ]
 
 
@@ -65,7 +66,7 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-# docs -> stepRepTool -> state_space_analysis -> repository root
+# docs -> stateRepTool -> state_space_analysis -> repository root
 ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT))
 
