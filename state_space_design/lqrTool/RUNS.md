@@ -167,3 +167,10 @@ python cli.py   --A "0 1; 0 -1" --B "0; 1" --C "1 0"   --Q "eye" --R "1"   --ste
 - For reproducible artifacts in CI, prefer `--plots none` or add `--no_show`.
 - Use `--save_prefix out/<name>` to keep output in the package-level `out/` directory when running from inside this folder.
 - On systems without a display, matplotlib will auto-switch or you can force a non-interactive backend via `MPLBACKEND=Agg`.
+
+### Sphinx
+
+python -m state_space_design.lqrTool.cli sphinx-skel state_space_design/lqrTool/docs
+python -m sphinx -b html docs docs/_build/html
+open docs/_build/html/index.html
+sphinx-autobuild docs docs/_build/html

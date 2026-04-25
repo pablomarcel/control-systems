@@ -169,3 +169,9 @@ python -m state_space_design.observerStatePlotTool.cli   --data state_space_desi
 - **Nothing selected to plot** → ensure `--what` matches available series in your JSON (e.g., if there’s no `e`, `err` can’t be plotted).
 - **Files not showing up under `out/`** → when using basenames for `--save_*`, artifacts are saved to this package’s `./out/` directory.
 
+### Sphinx
+
+python -m state_space_design.observerStatePlotTool.cli sphinx-skel state_space_design/observerStatePlotTool/docs
+python -m sphinx -b html docs docs/_build/html
+open docs/_build/html/index.html
+sphinx-autobuild docs docs/_build/html

@@ -186,3 +186,10 @@ Everything above also works from the repo root using the module entry:
 ```bash
 python -m state_space_design.statePlotsTool.cli --data state_space_design/statePlotsTool/in/io.json --scenario step --what y --backend none --save_csv step.csv --no_show
 ```
+
+### Sphinx
+
+python -m state_space_design.statePlotsTool.cli sphinx-skel state_space_design/statePlotsTool/docs
+python -m sphinx -b html docs docs/_build/html
+open docs/_build/html/index.html
+sphinx-autobuild docs docs/_build/html
