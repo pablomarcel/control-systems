@@ -128,3 +128,10 @@ python -m state_space_design.gainMatrixTool.cli batch   --csv state_space_design
 ## Requirements & Notes
 - Python packages: `numpy`, `control>=0.10.2`, `pyyaml` (for YAML), `tqdm` (for batch progress).
 - Outputs go where you point `--export_json` or `--export_dir`. Inside-folder runs should prefer `out/` and `out_json/`.
+
+### Sphinx
+
+python -m state_space_design.gainMatrixTool.cli sphinx-skel state_space_design/gainMatrixTool/docs
+python -m sphinx -b html docs docs/_build/html
+open docs/_build/html/index.html
+sphinx-autobuild docs docs/_build/html

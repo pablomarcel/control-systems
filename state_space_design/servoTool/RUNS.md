@@ -71,3 +71,10 @@ If you prefer running from repo root, the equivalent command is:
 python -m state_space_design.servoTool.cli --data state_space_design/servoTool/in/K_controller.json --C "1 0" --export_json k_mode_io.json --save_csv k_mode_step.csv --backend none
 ```
 Outputs still appear in `stateSpaceDesign/servoTool/out/`.
+
+### Sphinx
+
+python -m state_space_design.servoTool.cli sphinx-skel state_space_design/servoTool/docs
+python -m sphinx -b html docs docs/_build/html
+open docs/_build/html/index.html
+sphinx-autobuild docs docs/_build/html

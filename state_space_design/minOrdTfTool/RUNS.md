@@ -140,3 +140,10 @@ python cli.py \
   --K "6 4" \
   --export_json out/smoke.json
 ```
+
+### Sphinx
+
+python -m state_space_design.minOrdTfTool.cli sphinx-skel state_space_design/minOrdTfTool/docs
+python -m sphinx -b html docs docs/_build/html
+open docs/_build/html/index.html
+sphinx-autobuild docs docs/_build/html

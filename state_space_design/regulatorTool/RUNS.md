@@ -105,3 +105,10 @@ python -m state_space_design.regulatorTool.cli \
   --x0='1 0 0' --e0='1 0' \
   --plots=none --export_json=out/sys_auto_summary.json
 ```
+
+### Sphinx
+
+python -m state_space_design.regulatorTool.cli sphinx-skel state_space_design/regulatorTool/docs
+python -m sphinx -b html docs docs/_build/html
+open docs/_build/html/index.html
+sphinx-autobuild docs docs/_build/html

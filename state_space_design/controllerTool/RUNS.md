@@ -118,3 +118,10 @@ python cli.py       --num "1" --den "1 0 1 0"       --ts 4 --undershoot "0.2,0.2
 ```bash
 python cli.py       --num "1" --den "1 0 1 0"       --K_poles=-1+1j,-1-1j,-8       --obs_poles=-4,-4       --cfg both --plots mpl       --save_prefix "out/ogata10_7_mpl"
 ```
+
+### Sphinx
+
+python -m state_space_design.controllerTool.cli sphinx-skel state_space_design/controllerTool/docs
+python -m sphinx -b html docs docs/_build/html
+open docs/_build/html/index.html
+sphinx-autobuild docs docs/_build/html

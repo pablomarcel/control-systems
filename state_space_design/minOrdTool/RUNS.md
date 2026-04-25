@@ -159,3 +159,10 @@ python -m state_space_design.minOrdTool.tools.class_diagram --out out/minOrdTool
 - If you hit "Singular S" without `--allow_pinv`, consider rotating `C`
   (i.e., measure a different output) or re-run with `--allow_pinv` for diagnostics.
 - For CI, stick to `--pretty` off for faster runs and smaller logs.
+
+### Sphinx
+
+python -m state_space_design.minOrdTool.cli sphinx-skel state_space_design/minOrdTool/docs
+python -m sphinx -b html docs docs/_build/html
+open docs/_build/html/index.html
+sphinx-autobuild docs docs/_build/html

@@ -76,3 +76,10 @@ pytest state_space_design/robustTool/tests \
 Notes:
 - If a filename is passed to `--export-json` without a directory, it’s written under `./out/` when run here, or under `stateSpaceDesign/robustTool/out/` when run as a module.
 - Prefer `--flag=value` (with quotes if needed) on zsh.
+
+### Sphinx
+
+python -m state_space_design.robustTool.cli sphinx-skel state_space_design/robustTool/docs
+python -m sphinx -b html docs docs/_build/html
+open docs/_build/html/index.html
+sphinx-autobuild docs docs/_build/html

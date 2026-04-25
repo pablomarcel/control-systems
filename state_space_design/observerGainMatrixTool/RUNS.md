@@ -274,3 +274,10 @@ python cli.py \
 - For reproducible artifacts in CI, prefer `--export_json` paths under the working directory.
 - If `python-control` is not installed, `--method ack` still supports SISO observers; multi-row `C` requires `--method place`.
 - Use equals-form for any argument whose immediate value starts with `-`, e.g. `--K_poles="-1.8+2.4j,-1.8-2.4j"`.
+
+### Sphinx
+
+python -m state_space_design.observerGainMatrixTool.cli sphinx-skel state_space_design/observerGainMatrixTool/docs
+python -m sphinx -b html docs docs/_build/html
+open docs/_build/html/index.html
+sphinx-autobuild docs docs/_build/html
