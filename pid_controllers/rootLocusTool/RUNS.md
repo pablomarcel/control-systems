@@ -205,3 +205,10 @@ python cli.py \
 ## Tips
 - `MPLBACKEND=Agg` helps in headless terminals when using the Matplotlib backend.
 - Quotes are required for `--den` with spaces, e.g., `--den "1 6 5 0"`.
+
+### Sphinx
+
+python -m pid_controllers.rootLocusTool.cli sphinx-skel pid_controllers/rootLocusTool/docs
+python -m sphinx -b html docs docs/_build/html
+open docs/_build/html/index.html
+sphinx-autobuild docs docs/_build/html

@@ -264,3 +264,10 @@ python -m pid_controllers.pidTool.tools.diagram_tool --emit-mermaid
 # python tools/diagram_tool.py --emit-mermaid
 # Writes ./out/pidTool_classes.mmd
 ```
+
+### Sphinx
+
+python -m pid_controllers.pidTool.cli sphinx-skel pid_controllers/pidTool/docs
+python -m sphinx -b html docs docs/_build/html
+open docs/_build/html/index.html
+sphinx-autobuild docs docs/_build/html
