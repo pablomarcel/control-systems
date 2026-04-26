@@ -31,7 +31,6 @@ jobs:
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
           pip install sphinx furo || pip install sphinx alabaster
-          # If your project has a pyproject.toml/setup.cfg, this will help:
           if [ -f pyproject.toml ] || [ -f setup.cfg ] || [ -f setup.py ]; then
             pip install -e .
           fi
@@ -40,35 +39,348 @@ jobs:
 
       - name: Build all Sphinx projects under */docs
         env:
-          # Make the source tree importable even if editable install is skipped
           PYTHONPATH: ${{ github.workspace }}
         shell: bash
         run: |
           set -euo pipefail
-          mapfile -t DOCS < <(find . -type d -name docs -maxdepth 4 | sort)
+
+          mapfile -t DOCS < <(find . -maxdepth 4 -type d -name docs | sort)
+
+          if [ "${#DOCS[@]}" -eq 0 ]; then
+            echo "No Sphinx docs directories found."
+            exit 1
+          fi
+
           for D in "${DOCS[@]}"; do
             echo "==> Building $D"
-            # -W makes warnings fail the job so we don't silently publish blanks
-            sphinx-build -b html -W --keep-going "$D" "$D/_build/html"
+            if [ -f "$D/Makefile" ]; then
+              make -C "$D" html || sphinx-build -b html -W --keep-going "$D" "$D/_build/html"
+            else
+              sphinx-build -b html -W --keep-going "$D" "$D/_build/html"
+            fi
           done
 
       - name: Assemble site folder
         shell: bash
         run: |
+          set -euo pipefail
+
           mkdir -p _site
-          mapfile -t DOCS < <(find . -type d -name docs -maxdepth 4 | sort)
-          INDEX="_site/index.html"
-          echo '<!doctype html><meta charset="utf-8"><title>Docs</title><h1>Docs</h1><ul>' > "$INDEX"
+          touch _site/.nojekyll
+
+          mapfile -t DOCS < <(find . -maxdepth 4 -type d -name docs | sort)
+
           for D in "${DOCS[@]}"; do
             PKG_PATH="$(dirname "$D")"
-            DEST="_site/${PKG_PATH#./}"
+            ROUTE="${PKG_PATH#./}"
+            DEST="_site/$ROUTE"
+
             if [ -d "$D/_build/html" ]; then
+              echo "==> Copying $ROUTE"
               mkdir -p "$DEST"
               cp -R "$D/_build/html/"* "$DEST/"
-              echo "<li><a href='${PKG_PATH#./}/'>${PKG_PATH#./}/</a></li>" >> "$INDEX"
+            else
+              echo "==> No built docs for $ROUTE"
             fi
           done
-          echo '</ul>' >> "$INDEX"
+
+          python - <<'PY'
+          from __future__ import annotations
+
+          import html
+          from collections import defaultdict
+          from pathlib import Path
+
+          site = Path("_site")
+
+          def discover_routes() -> list[str]:
+              """Discover built Sphinx sites from the assembled _site folder."""
+              routes: list[str] = []
+              for index in sorted(site.rglob("index.html")):
+                  if index == site / "index.html":
+                      continue
+                  rel = index.parent.relative_to(site).as_posix()
+                  if rel and not rel.startswith("_"):
+                      routes.append(rel)
+              return sorted(set(routes))
+
+          routes = discover_routes()
+
+          def titleize_token(token: str) -> str:
+              acronyms = {"api", "cli", "pid", "lqr", "mimo", "siso"}
+              lower = token.lower()
+              if lower in acronyms:
+                  return lower.upper()
+              return token[:1].upper() + token[1:]
+
+          def titleize(route: str) -> str:
+              """Create a readable title from the actual route path."""
+              name = route.split("/")[-1]
+              cleaned = name.replace("_", " ").replace("-", " ")
+              return " ".join(titleize_token(part) for part in cleaned.split()) or route
+
+          def group_title(group: str) -> str:
+              cleaned = group.replace("_", " ").replace("-", " ")
+              return " ".join(titleize_token(part) for part in cleaned.split()) or group
+
+          def icon_for(route: str, idx: int) -> str:
+              title = titleize(route)
+              words = title.split()
+              if not words:
+                  return str(idx + 1)
+              if len(words) >= 2:
+                  return (words[0][0] + words[1][0]).upper()
+              word = words[0]
+              return word[:3].upper() if len(word) <= 3 else word[:2].upper()
+
+          def desc_for(route: str) -> str:
+              """Generate useful text without depending on stale package names."""
+              title = titleize(route)
+              low = route.lower()
+              if "root" in low and "locus" in low:
+                  return "Root-locus analysis, gain studies, and classical control design documentation."
+              if "frequency" in low or "bode" in low or "nyquist" in low:
+                  return "Frequency-domain analysis, plotting, and stability-oriented design documentation."
+              if "state" in low and "space" in low:
+                  return "State-space modeling, analysis, design, and reproducible CLI workflows."
+              if "pid" in low:
+                  return "PID controller workflows, tuning utilities, and closed-loop response documentation."
+              if "transient" in low:
+                  return "Time-domain response, transient metrics, and simulation-oriented workflows."
+              if "fluid" in low:
+                  return "Fluid-systems modeling utilities and package-level API documentation."
+              if "mechanical" in low:
+                  return "Mechanical-systems modeling utilities and package-level API documentation."
+              if "introduction" in low:
+                  return "Introductory examples, helper utilities, and foundational control-system workflows."
+              if "control" in low:
+                  return "Control-system analysis, design utilities, and command-line engineering workflows."
+              return f"Package-level API documentation and reproducible CLI workflows for {title}."
+
+          def route_sort_key(route: str) -> tuple[int, str]:
+              preferred = [
+                  "introduction",
+                  "control_systems",
+                  "transient_analysis",
+                  "frequency_response",
+                  "root_locus_analysis",
+                  "state_space_analysis",
+                  "state_space_design",
+                  "pid_controllers",
+                  "mechanical_systems",
+                  "fluid_systems",
+              ]
+              top = route.split("/", 1)[0]
+              try:
+                  rank = preferred.index(top)
+              except ValueError:
+                  rank = len(preferred)
+              return rank, route
+
+          routes = sorted(routes, key=route_sort_key)
+          grouped: dict[str, list[str]] = defaultdict(list)
+          for route in routes:
+              grouped[route.split("/", 1)[0]].append(route)
+
+          package_count = len(routes)
+          first_link = f"{routes[0]}/" if routes else "#"
+          first_label = titleize(routes[0]) if routes else "API Reference"
+          second_link = first_link
+          second_label = first_label
+          for route in routes:
+              lowered = route.lower()
+              if any(key in lowered for key in ("root", "bode", "nyquist", "routh", "hurwitz", "frequency")):
+                  second_link = f"{route}/"
+                  second_label = titleize(route)
+                  break
+
+          group_blocks: list[str] = []
+          for group in sorted(grouped, key=lambda g: route_sort_key(g)[0:2]):
+              cards: list[str] = []
+              for idx, route in enumerate(grouped[group]):
+                  title = titleize(route)
+                  icon = icon_for(route, idx)
+                  desc = desc_for(route)
+                  cards.append(f'''                  <a class="card" href="{html.escape(route)}/">
+                    <div class="card-top"><span class="icon">{html.escape(icon)}</span><span class="name">{html.escape(title)}</span><span class="desc">{html.escape(desc)}</span></div>
+                    <div class="card-bottom"><span>Open docs</span><span class="arrow">→</span></div>
+                  </a>''')
+
+              group_blocks.append(f'''                <div class="group">
+                  <h3 class="group-title">{html.escape(group_title(group))}</h3>
+                  <div class="grid">
+          {chr(10).join(cards)}
+                  </div>
+                </div>''')
+
+          packages_html = "\n".join(group_blocks) if group_blocks else "                <p>No package documentation was found in this build.</p>"
+
+          index = f'''<!doctype html>
+          <html lang="en">
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <meta name="color-scheme" content="dark light">
+            <title>Control Systems Docs</title>
+            <style>
+              :root {{
+                --bg-0: #060914;
+                --bg-1: #09111f;
+                --bg-2: #111827;
+                --card: rgba(255, 255, 255, 0.075);
+                --card-strong: rgba(255, 255, 255, 0.12);
+                --text: #f8fafc;
+                --muted: #a9b6ca;
+                --soft: #e0ecff;
+                --accent: #38bdf8;
+                --accent-2: #818cf8;
+                --accent-3: #22c55e;
+                --border: rgba(255, 255, 255, 0.14);
+                --shadow: 0 24px 80px rgba(0, 0, 0, 0.34);
+              }}
+
+              * {{ box-sizing: border-box; }}
+              html {{ min-height: 100%; background: var(--bg-0); }}
+              body {{
+                min-height: 100%;
+                margin: 0;
+                color: var(--text);
+                font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+                background:
+                  radial-gradient(circle at 10% 8%, rgba(56, 189, 248, 0.25), transparent 30rem),
+                  radial-gradient(circle at 84% 10%, rgba(129, 140, 248, 0.25), transparent 32rem),
+                  radial-gradient(circle at 72% 92%, rgba(34, 197, 94, 0.13), transparent 30rem),
+                  linear-gradient(135deg, var(--bg-0), var(--bg-1) 44%, var(--bg-2));
+              }}
+
+              body::before {{
+                content: "";
+                position: fixed;
+                inset: 0;
+                pointer-events: none;
+                background-image:
+                  linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px),
+                  linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px);
+                background-size: 72px 72px;
+                mask-image: linear-gradient(to bottom, rgba(0,0,0,0.78), transparent 78%);
+              }}
+
+              a {{ color: inherit; }}
+              .shell {{ position: relative; width: min(1180px, calc(100% - 40px)); margin: 0 auto; padding: 34px 0 64px; }}
+              .nav {{ display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 72px; }}
+              .brand {{ display: inline-flex; align-items: center; gap: 12px; font-weight: 850; letter-spacing: -0.035em; }}
+              .brand-mark {{ display: grid; place-items: center; width: 42px; height: 42px; border: 1px solid var(--border); border-radius: 14px; background: linear-gradient(145deg, rgba(56,189,248,0.30), rgba(129,140,248,0.20)); box-shadow: 0 16px 48px rgba(56, 189, 248, 0.13); }}
+              .brand-mark svg {{ width: 23px; height: 23px; }}
+              .nav-pill {{ display: inline-flex; align-items: center; gap: 8px; padding: 10px 14px; border: 1px solid var(--border); border-radius: 999px; color: var(--soft); background: rgba(255,255,255,0.055); backdrop-filter: blur(14px); text-decoration: none; font-size: 0.93rem; }}
+              .hero {{ display: grid; grid-template-columns: minmax(0, 1.08fr) minmax(280px, 0.92fr); gap: 28px; align-items: stretch; margin-bottom: 34px; }}
+              .hero-copy {{ padding: 8px 0 0; }}
+              .eyebrow {{ display: inline-flex; align-items: center; gap: 10px; margin-bottom: 18px; padding: 8px 12px; border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 999px; color: #d7f3ff; background: rgba(56, 189, 248, 0.08); font-size: 0.92rem; font-weight: 650; }}
+              .dot {{ width: 8px; height: 8px; border-radius: 50%; background: var(--accent-3); box-shadow: 0 0 22px var(--accent-3); }}
+              h1 {{ max-width: 840px; margin: 0; font-size: clamp(3rem, 8vw, 6.65rem); line-height: 0.92; letter-spacing: -0.085em; }}
+              .gradient-text {{ background: linear-gradient(90deg, #ffffff, #dbeafe 30%, #8bdcff 66%, #c7d2fe); -webkit-background-clip: text; background-clip: text; color: transparent; }}
+              .lead {{ max-width: 690px; margin: 26px 0 0; color: var(--muted); font-size: clamp(1.05rem, 2.1vw, 1.34rem); line-height: 1.65; }}
+              .actions {{ display: flex; flex-wrap: wrap; gap: 12px; margin-top: 30px; }}
+              .button {{ display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-height: 46px; padding: 0 18px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.16); background: rgba(255,255,255,0.075); color: var(--text); text-decoration: none; font-weight: 750; backdrop-filter: blur(12px); transition: transform 160ms ease, border-color 160ms ease, background 160ms ease; }}
+              .button.primary {{ border-color: rgba(56, 189, 248, 0.44); background: linear-gradient(135deg, rgba(56, 189, 248, 0.28), rgba(129, 140, 248, 0.18)); }}
+              .button:hover {{ transform: translateY(-2px); border-color: rgba(255,255,255,0.36); background: rgba(255,255,255,0.12); }}
+              .panel {{ position: relative; overflow: hidden; padding: 24px; border: 1px solid var(--border); border-radius: 32px; background: linear-gradient(180deg, rgba(255,255,255,0.12), rgba(255,255,255,0.06)), rgba(255,255,255,0.055); box-shadow: var(--shadow); backdrop-filter: blur(18px); }}
+              .panel::after {{ content: ""; position: absolute; width: 230px; height: 230px; right: -80px; top: -80px; border-radius: 50%; background: radial-gradient(circle, rgba(56, 189, 248, 0.22), transparent 68%); }}
+              .panel-content {{ position: relative; z-index: 1; }}
+              .panel-title {{ margin: 0 0 14px; color: var(--soft); font-weight: 800; letter-spacing: -0.03em; }}
+              .metric-grid {{ display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 18px 0 20px; }}
+              .metric {{ padding: 16px; border: 1px solid rgba(255,255,255,0.12); border-radius: 20px; background: rgba(0,0,0,0.18); }}
+              .metric strong {{ display: block; font-size: 1.75rem; letter-spacing: -0.06em; }}
+              .metric span {{ display: block; margin-top: 3px; color: var(--muted); font-size: 0.9rem; }}
+              .code-card {{ margin-top: 14px; padding: 16px; border: 1px solid rgba(56, 189, 248, 0.18); border-radius: 18px; color: #dbf7ff; background: rgba(3, 7, 18, 0.58); font: 0.88rem/1.7 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; overflow-x: auto; }}
+              .section-head {{ display: flex; align-items: end; justify-content: space-between; gap: 18px; margin: 48px 0 18px; }}
+              h2 {{ margin: 0; font-size: clamp(1.7rem, 3vw, 2.4rem); letter-spacing: -0.055em; }}
+              .section-head p {{ max-width: 540px; margin: 0; color: var(--muted); line-height: 1.55; }}
+              .group {{ margin-top: 26px; }}
+              .group-title {{ display: flex; align-items: center; gap: 10px; margin: 0 0 14px; color: var(--soft); font-size: 0.95rem; font-weight: 850; letter-spacing: 0.08em; text-transform: uppercase; }}
+              .group-title::before {{ content: ""; width: 10px; height: 10px; border-radius: 999px; background: var(--accent); box-shadow: 0 0 20px rgba(56, 189, 248, 0.8); }}
+              .grid {{ display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }}
+              .card {{ position: relative; display: flex; flex-direction: column; min-height: 180px; padding: 20px; overflow: hidden; border: 1px solid var(--border); border-radius: 26px; background: var(--card); color: var(--text); text-decoration: none; box-shadow: 0 18px 55px rgba(0, 0, 0, 0.18); backdrop-filter: blur(14px); transition: transform 180ms ease, border-color 180ms ease, background 180ms ease, box-shadow 180ms ease; }}
+              .card::before {{ content: ""; position: absolute; inset: 0; opacity: 0; background: radial-gradient(circle at 20% 0%, rgba(56,189,248,0.24), transparent 42%), linear-gradient(135deg, rgba(255,255,255,0.10), transparent 42%); transition: opacity 180ms ease; }}
+              .card:hover {{ transform: translateY(-5px); border-color: rgba(56, 189, 248, 0.5); background: var(--card-strong); box-shadow: 0 24px 70px rgba(0, 0, 0, 0.28); }}
+              .card:hover::before {{ opacity: 1; }}
+              .card-top, .card-bottom {{ position: relative; z-index: 1; }}
+              .icon {{ display: grid; place-items: center; width: 42px; height: 42px; margin-bottom: 16px; border-radius: 16px; background: linear-gradient(135deg, rgba(56, 189, 248, 0.22), rgba(129, 140, 248, 0.16)); border: 1px solid rgba(255,255,255,0.12); color: #e8f8ff; font-weight: 900; }}
+              .name {{ display: block; margin-bottom: 8px; font-size: 1.08rem; font-weight: 850; letter-spacing: -0.035em; }}
+              .desc {{ display: block; color: var(--muted); line-height: 1.48; }}
+              .card-bottom {{ display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-top: auto; padding-top: 22px; color: #bdeaff; font-size: 0.92rem; font-weight: 750; }}
+              .arrow {{ display: grid; place-items: center; width: 30px; height: 30px; border-radius: 999px; background: rgba(56, 189, 248, 0.12); }}
+              footer {{ margin-top: 46px; padding: 22px 0 0; color: rgba(218, 231, 255, 0.64); border-top: 1px solid rgba(255,255,255,0.10); font-size: 0.95rem; }}
+              @media (max-width: 940px) {{ .hero {{ grid-template-columns: 1fr; margin-bottom: 22px; }} .grid {{ grid-template-columns: repeat(2, minmax(0, 1fr)); }} }}
+              @media (max-width: 640px) {{ .shell {{ width: min(100% - 28px, 1180px); padding-top: 22px; }} .nav {{ margin-bottom: 42px; }} .nav-pill {{ display: none; }} .panel {{ padding: 20px; border-radius: 26px; }} .metric-grid, .grid {{ grid-template-columns: 1fr; }} .section-head {{ display: block; }} .section-head p {{ margin-top: 10px; }} }}
+            </style>
+          </head>
+          <body>
+            <div class="shell">
+              <nav class="nav" aria-label="Page navigation">
+                <div class="brand">
+                  <span class="brand-mark" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M4 17.5h16M4 12h16M4 6.5h16" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" opacity="0.55"/>
+                      <path d="M7 17.5c2.1-7.3 3.5-11 5-11s2.9 3.7 5 11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                      <circle cx="12" cy="12" r="2.1" stroke="currentColor" stroke-width="1.5"/>
+                    </svg>
+                  </span>
+                  <span>Control Systems Docs</span>
+                </div>
+                <a class="nav-pill" href="{html.escape(first_link)}">Start with {html.escape(first_label)} →</a>
+              </nav>
+
+              <section class="hero">
+                <div class="hero-copy">
+                  <div class="eyebrow"><span class="dot"></span> Python control-engineering documentation</div>
+                  <h1><span class="gradient-text">Control systems docs</span></h1>
+                  <p class="lead">
+                    API references for the Control Systems package suite: classical analysis,
+                    stability tests, time-domain response, frequency-domain design, and
+                    reproducible command-line engineering workflows.
+                  </p>
+                  <div class="actions">
+                    <a class="button primary" href="{html.escape(first_link)}">Browse package docs →</a>
+                    <a class="button" href="{html.escape(second_link)}">Open {html.escape(second_label)}</a>
+                  </div>
+                </div>
+
+                <aside class="panel" aria-label="Documentation summary">
+                  <div class="panel-content">
+                    <p class="panel-title">Toolkit map</p>
+                    <div class="metric-grid">
+                      <div class="metric"><strong>{package_count}</strong><span>documented packages</span></div>
+                      <div class="metric"><strong>API</strong><span>Sphinx references</span></div>
+                      <div class="metric"><strong>CLI</strong><span>repeatable workflows</span></div>
+                      <div class="metric"><strong>Py</strong><span>engineering-first stack</span></div>
+                    </div>
+                    <div class="code-card">
+                      sphinx-build -b html package/docs package/docs/_build/html<br>
+                      python -m pytest
+                    </div>
+                  </div>
+                </aside>
+              </section>
+
+              <section aria-labelledby="packages-title">
+                <div class="section-head">
+                  <div><h2 id="packages-title">Package documentation</h2></div>
+                  <p>Choose a module family below. Each card opens the package-level Sphinx site generated during the GitHub Pages build.</p>
+                </div>
+
+          {packages_html}
+              </section>
+
+              <footer>
+                Built with Sphinx and GitHub Pages from Control Systems package documentation folders.
+              </footer>
+            </div>
+          </body>
+          </html>
+          '''
+
+          (site / "index.html").write_text(index, encoding="utf-8")
+          PY
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
