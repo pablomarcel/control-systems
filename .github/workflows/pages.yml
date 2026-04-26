@@ -67,6 +67,7 @@ jobs:
 
           mkdir -p _site
           touch _site/.nojekyll
+          : > _site/.docs_routes.txt
 
           mapfile -t DOCS < <(find . -maxdepth 4 -type d -name docs | sort)
 
@@ -79,6 +80,7 @@ jobs:
               echo "==> Copying $ROUTE"
               mkdir -p "$DEST"
               cp -R "$D/_build/html/"* "$DEST/"
+              printf '%s\n' "$ROUTE" >> _site/.docs_routes.txt
             else
               echo "==> No built docs for $ROUTE"
             fi
@@ -92,49 +94,177 @@ jobs:
           from pathlib import Path
 
           site = Path("_site")
+          manifest = site / ".docs_routes.txt"
 
-          def discover_routes() -> list[str]:
-              """Discover built Sphinx sites from the assembled _site folder."""
+          def read_routes() -> list[str]:
+              """Read only the package routes copied by the workflow.
+
+              Do not discover routes with ``_site.rglob('index.html')``. Sphinx
+              builds many internal pages such as ``modules/index.html`` and
+              ``_sources``/``_static`` support files. Treating every nested
+              ``index.html`` as a package creates duplicate cards such as
+              "Modules". The manifest contains only the real package doc roots.
+              """
+              if not manifest.exists():
+                  return []
               routes: list[str] = []
-              for index in sorted(site.rglob("index.html")):
-                  if index == site / "index.html":
+              for line in manifest.read_text(encoding="utf-8").splitlines():
+                  route = line.strip().strip("/")
+                  if not route or route.startswith("_"):
                       continue
-                  rel = index.parent.relative_to(site).as_posix()
-                  if rel and not rel.startswith("_"):
-                      routes.append(rel)
+                  if (site / route / "index.html").exists():
+                      routes.append(route)
               return sorted(set(routes))
 
-          routes = discover_routes()
+          routes = read_routes()
+
+          DISPLAY = {
+              "introduction": (
+                  "IN",
+                  "Introduction",
+                  "Introductory examples, helper utilities, and foundational control-system workflows.",
+              ),
+              "control_systems": (
+                  "CS",
+                  "Control Systems",
+                  "Core control-system analysis, modeling, and command-line engineering workflows.",
+              ),
+              "fluid_systems": (
+                  "FL",
+                  "Fluid Systems",
+                  "Fluid-system modeling utilities and package-level API documentation.",
+              ),
+              "frequency_response": (
+                  "FR",
+                  "Frequency Response",
+                  "Frequency-domain analysis, plotting, margins, and stability-oriented design documentation.",
+              ),
+              "mechanical_systems": (
+                  "MS",
+                  "Mechanical Systems",
+                  "Mechanical-system modeling utilities and package-level API documentation.",
+              ),
+              "pid_controllers": (
+                  "PID",
+                  "PID Controllers",
+                  "PID controller workflows, tuning utilities, and closed-loop response documentation.",
+              ),
+              "root_locus_analysis": (
+                  "RL",
+                  "Root Locus Analysis",
+                  "Root-locus analysis, gain studies, and classical control design documentation.",
+              ),
+              "state_space_analysis": (
+                  "SA",
+                  "State Space Analysis",
+                  "State-space modeling, simulation, response analysis, and reproducible CLI workflows.",
+              ),
+              "state_space_design": (
+                  "SD",
+                  "State Space Design",
+                  "State-space design, controller synthesis, observers, and related workflows.",
+              ),
+              "transient_analysis": (
+                  "TR",
+                  "Transient Analysis",
+                  "Time-domain response, transient metrics, stability tests, and simulation-oriented workflows.",
+              ),
+          }
+
+          TOP_ORDER = [
+              "introduction",
+              "control_systems",
+              "transient_analysis",
+              "frequency_response",
+              "root_locus_analysis",
+              "state_space_analysis",
+              "state_space_design",
+              "pid_controllers",
+              "mechanical_systems",
+              "fluid_systems",
+          ]
+
+          TOOL_DISPLAY = {
+              "bodeTool": ("B", "Bode Tool", "Bode magnitude/phase plotting and frequency-response workflows."),
+              "nyquistTool": ("N", "Nyquist Tool", "Nyquist analysis and stability-oriented frequency-response workflows."),
+              "routhTool": ("R", "Routh Tool", "Routh-Hurwitz tabulation, stability checks, and symbolic/numeric workflows."),
+              "hurwitzTool": ("H", "Hurwitz Tool", "Hurwitz matrices, polynomial stability tests, and supporting utilities."),
+              "rootLocusTool": ("RL", "Root Locus Tool", "Root-locus plots, gain studies, and classical design workflows."),
+              "stateTool": ("ST", "State Tool", "State-space calculations, matrix workflows, and CLI utilities."),
+              "stateRespTool": ("SR", "State Response Tool", "State-response simulation, transition matrices, and output analysis."),
+              "stateSolnTool": ("SS", "State Solution Tool", "State-transition and solution workflows for state-space models."),
+              "stateTransTool": ("Φ", "State Transformation Tool", "Coordinate transformations and state-space canonical-form workflows."),
+              "pidTool": ("PID", "PID Tool", "PID controller tuning, evaluation, and closed-loop response workflows."),
+              "transientTool": ("tr", "Transient Tool", "Step, impulse, and time-domain response metrics."),
+              "steadyStateTool": ("ss", "Steady-State Tool", "Steady-state error, system type, and tracking-performance calculations."),
+              "transferFunctionTool": ("G", "Transfer Function Tool", "Transfer-function manipulation, poles, zeros, and response utilities."),
+              "secondOrderTool": ("ζ", "Second-Order Tool", "Canonical second-order response metrics and design relationships."),
+              "blockDiagramTool": ("Σ", "Block Diagram Tool", "Block-diagram reduction and signal-flow style analysis utilities."),
+              "compensatorTool": ("C", "Compensator Tool", "Lead, lag, and lead-lag design workflows for classical control."),
+              "modelingTool": ("M", "Modeling Tool", "Modeling utilities and system representation workflows."),
+          }
 
           def titleize_token(token: str) -> str:
-              acronyms = {"api", "cli", "pid", "lqr", "mimo", "siso"}
+              acronyms = {"api", "cli", "pid", "lqr", "mimo", "siso", "ode", "tf"}
               lower = token.lower()
               if lower in acronyms:
                   return lower.upper()
               return token[:1].upper() + token[1:]
 
+          def split_camel(name: str) -> str:
+              out = []
+              prev = ""
+              for ch in name:
+                  if prev and ch.isupper() and (prev.islower() or prev.isdigit()):
+                      out.append(" ")
+                  out.append(ch)
+                  prev = ch
+              return "".join(out)
+
+          def group_key(route: str) -> str:
+              return route.split("/", 1)[0]
+
+          def leaf_name(route: str) -> str:
+              return route.split("/")[-1]
+
           def titleize(route: str) -> str:
-              """Create a readable title from the actual route path."""
-              name = route.split("/")[-1]
-              cleaned = name.replace("_", " ").replace("-", " ")
-              return " ".join(titleize_token(part) for part in cleaned.split()) or route
+              top = group_key(route)
+              leaf = leaf_name(route)
+              if route in DISPLAY:
+                  return DISPLAY[route][1]
+              if leaf in TOOL_DISPLAY:
+                  return TOOL_DISPLAY[leaf][1]
+              name = split_camel(leaf).replace("_", " ").replace("-", " ")
+              return " ".join(titleize_token(part) for part in name.split()) or route
 
           def group_title(group: str) -> str:
+              if group in DISPLAY:
+                  return DISPLAY[group][1]
               cleaned = group.replace("_", " ").replace("-", " ")
               return " ".join(titleize_token(part) for part in cleaned.split()) or group
 
           def icon_for(route: str, idx: int) -> str:
+              if route in DISPLAY:
+                  return DISPLAY[route][0]
+              leaf = leaf_name(route)
+              if leaf in TOOL_DISPLAY:
+                  return TOOL_DISPLAY[leaf][0]
               title = titleize(route)
               words = title.split()
-              if not words:
-                  return str(idx + 1)
               if len(words) >= 2:
                   return (words[0][0] + words[1][0]).upper()
-              word = words[0]
-              return word[:3].upper() if len(word) <= 3 else word[:2].upper()
+              if words:
+                  return words[0][:3].upper() if len(words[0]) <= 3 else words[0][:2].upper()
+              return str(idx + 1)
 
           def desc_for(route: str) -> str:
-              """Generate useful text without depending on stale package names."""
+              if route in DISPLAY:
+                  return DISPLAY[route][2]
+              leaf = leaf_name(route)
+              if leaf in TOOL_DISPLAY:
+                  return TOOL_DISPLAY[leaf][2]
+
+              top = group_key(route)
               title = titleize(route)
               low = route.lower()
               if "root" in low and "locus" in low:
@@ -147,40 +277,22 @@ jobs:
                   return "PID controller workflows, tuning utilities, and closed-loop response documentation."
               if "transient" in low:
                   return "Time-domain response, transient metrics, and simulation-oriented workflows."
-              if "fluid" in low:
-                  return "Fluid-systems modeling utilities and package-level API documentation."
-              if "mechanical" in low:
-                  return "Mechanical-systems modeling utilities and package-level API documentation."
-              if "introduction" in low:
-                  return "Introductory examples, helper utilities, and foundational control-system workflows."
-              if "control" in low:
-                  return "Control-system analysis, design utilities, and command-line engineering workflows."
+              if top in DISPLAY:
+                  return DISPLAY[top][2]
               return f"Package-level API documentation and reproducible CLI workflows for {title}."
 
           def route_sort_key(route: str) -> tuple[int, str]:
-              preferred = [
-                  "introduction",
-                  "control_systems",
-                  "transient_analysis",
-                  "frequency_response",
-                  "root_locus_analysis",
-                  "state_space_analysis",
-                  "state_space_design",
-                  "pid_controllers",
-                  "mechanical_systems",
-                  "fluid_systems",
-              ]
-              top = route.split("/", 1)[0]
+              top = group_key(route)
               try:
-                  rank = preferred.index(top)
+                  rank = TOP_ORDER.index(top)
               except ValueError:
-                  rank = len(preferred)
+                  rank = len(TOP_ORDER)
               return rank, route
 
           routes = sorted(routes, key=route_sort_key)
           grouped: dict[str, list[str]] = defaultdict(list)
           for route in routes:
-              grouped[route.split("/", 1)[0]].append(route)
+              grouped[group_key(route)].append(route)
 
           package_count = len(routes)
           first_link = f"{routes[0]}/" if routes else "#"
